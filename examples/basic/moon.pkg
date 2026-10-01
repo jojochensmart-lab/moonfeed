@@ -1,0 +1,8 @@
+import {
+  "joanna/moonfeed",
+  "joanna/moonfeed/src/jsonfeed",
+}
+
+options(
+  "is-main": true,
+)
