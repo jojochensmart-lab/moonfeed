@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/src/jsonfeed"
+
+import {
+  "joanna/moonfeed/src/model",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse(String) -> @model.Feed raise ParseError
+
+// Errors
+pub(all) suberror ParseError {
+  InvalidJson(String)
+  MissingField(String)
+  InvalidType(String, String)
+  UnsupportedVersion(String)
+  InvalidValue(String, String)
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

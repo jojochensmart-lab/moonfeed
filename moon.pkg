@@ -1,1 +1,4 @@
-
+import {
+  "joanna/moonfeed/src/model",
+  "joanna/moonfeed/src/jsonfeed",
+}

@@ -1,7 +1,13 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "joanna/moonfeed"
 
+import {
+  "joanna/moonfeed/src/jsonfeed",
+  "joanna/moonfeed/src/model",
+}
+
 // Values
+pub fn parse_json_feed(String) -> @model.Feed raise @jsonfeed.ParseError
 
 // Errors
 
