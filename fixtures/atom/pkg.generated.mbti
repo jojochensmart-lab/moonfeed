@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/fixtures/atom"
+
+// Values
+pub let enclosure : String
+
+pub let full : String
+
+pub let github_release : String
+
+pub let minimal : String
+
+pub let multiple_entries : String
+
+pub let namespaced : String
+
+pub let tech_blog : String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

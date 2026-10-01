@@ -8,7 +8,7 @@
 | --- | --- |
 | JSON Feed 1.1 | supported / initial stable |
 | RSS 2.0 | supported / initial stable |
-| Atom 1.0 | planned |
+| Atom 1.0 | supported |
 | 日期统一解析 | planned；当前保留原始字符串 |
 | 格式自动检测、CLI | planned |
 | Mooncakes 发布 | 尚未发布 |
@@ -18,7 +18,7 @@
 - MoonBit >= v0.10.14
 - 当前开发验证使用 MoonBit `0.1.20260920` / `moonc v0.10.14+7d59c7ec9`。
 - GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本；本地开发验证固定使用 v0.10.14，CI 实际版本每次需结合日志确认。
-- RSS XML 解析使用 MoonFeed 内部的 `src/xmlmini` 子集 reader，不依赖第三方 XML registry 包。
+- RSS 与 Atom XML 解析使用 MoonFeed 内部的 src/xmlmini 子集 reader，不依赖第三方 XML registry 包。
 
 实现依据：[JSON Feed 1.1 规范](https://www.jsonfeed.org/version/1.1/) 和 [RSS 2.0 规范](https://www.rssboard.org/rss-specification)。
 
@@ -93,6 +93,27 @@ test {
 
 RSS 错误包括 `InvalidXml`、`UnsupportedRssVersion`、`MissingChannel`、channel 必填字段错误、`InvalidEnclosure` 和带字段路径的 `InvalidRequiredField`。
 
+## Atom 1.0
+
+通过 `parse_atom` 解析 Atom 1.0 并规范化到统一模型。支持 feed 的 id/title/subtitle/updated、作者、category 和 self/alternate link，以及 entry 的 id/title/updated/published、作者继承、category、summary、content 和 enclosure link。category 的 term 映射到 categories；日期保留原始字符串。
+
+- feed rel=self 映射到 Feed.feed_url；rel=alternate 或未指定 rel 映射到 Feed.home_page_url。
+- entry rel=alternate 或未指定 rel 映射到 FeedItem.url；rel=enclosure 映射到 Attachment 的 href、type、title、length。
+- entry 没有 author 时继承 feed authors；entry 自己声明 author 时使用 entry authors。Atom contributors 不并入 authors。
+- text（含缺省 type）写入 content_text；html 写入 content_html；xhtml 提取可读文本后写入 content_html。
+- Feed id、rights、generator、icon/logo、作者 email、contributors、entry rights/source，以及未知 rel 链接目前没有统一模型字段，因此解析后不保留。扩展节点被忽略。
+- namespace 策略接受默认 Atom namespace、无前缀名称和 atom: 前缀；不核验 namespace URI，也不实现通用 namespace engine。
+
+最小调用：@moonfeed.parse_atom("<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:news</id><title>News</title><updated>2026-10-01T12:00:00Z</updated><entry><id>post-1</id><title>First post</title><updated>2026-10-01T12:00:00Z</updated><summary>Hello</summary></entry></feed>")，返回统一 Feed，条目 id 为 post-1。
+
+~~~moonbit
+test {
+  let feed = @moonfeed.parse_atom(
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:news</id><title>News</title><updated>2026-10-01T12:00:00Z</updated><entry><id>post-1</id><title>First post</title><updated>2026-10-01T12:00:00Z</updated><summary>Hello</summary></entry></feed>
+  )
+  assert_eq(feed.items[0].id, "post-1")
+}
+~~~
 ## 开发与测试
 
 ```sh
@@ -103,14 +124,14 @@ moon test
 moon build
 ```
 
-当前共有 27 个行为测试，其中 15 个覆盖 JSON Feed，12 个覆盖 RSS 解析、规范化、CDATA、实体、namespace、重复 category、空白、自闭合元素、enclosure、日期和错误路径。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 44 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini 和 12 个 Atom 测试，覆盖格式映射、links、作者继承、文本构造、namespace 与错误路径。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
 
 ## Roadmap
 
-- 已完成：统一模型、JSON Feed 1.1、RSS 2.0 初始稳定切片、测试、文档和 CI。
-- 后续：Atom 1.0、格式检测、日期统一解析、RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
+- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、测试、文档和 CI。
+- 后续：格式检测、日期统一解析、RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
 
-本阶段止于 RSS 2.0，不实现 Atom。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
+当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 
 ## License
 

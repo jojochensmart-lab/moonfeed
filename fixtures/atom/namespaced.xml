@@ -1,0 +1,1 @@
+<atom:feed xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ext="urn:extension"><atom:id>urn:prefix</atom:id><atom:title>Prefixed</atom:title><atom:updated>raw</atom:updated><atom:entry><atom:id>e</atom:id><atom:title><![CDATA[A & B]]></atom:title><atom:updated>date</atom:updated><ext:title>Ignore me</ext:title></atom:entry></atom:feed>

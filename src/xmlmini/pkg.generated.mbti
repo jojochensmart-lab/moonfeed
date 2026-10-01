@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/src/xmlmini"
+
+// Values
+
+// Errors
+pub(all) suberror XmlError {
+  Malformed(String)
+}
+
+// Types and methods
+pub struct Reader {
+  chars : Array[Char]
+  mut pos : Int
+  tags : Array[String]
+}
+pub fn Reader::from_string(String) -> Self
+pub fn Reader::read_event(Self) -> XmlEvent raise XmlError
+
+pub struct XmlElement {
+  name : String
+  attributes : Map[String, String]
+}
+
+pub enum XmlEvent {
+  Start(XmlElement)
+  End(String)
+  Empty(XmlElement)
+  Text(String)
+  CData(String)
+  Eof
+}
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/src/atom"
+
+import {
+  "joanna/moonfeed/src/model",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse(String) -> @model.Feed raise ParseError
+
+// Errors
+pub(all) suberror ParseError {
+  InvalidXml(String)
+  InvalidAtomRoot(String)
+  InvalidRequiredField(String, String)
+} derive(Eq, @debug.Debug)
+pub fn ParseError::equal(Self, Self) -> Bool
+pub fn ParseError::not_equal(Self, Self) -> Bool
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+
+// Type aliases
+
+// Traits
