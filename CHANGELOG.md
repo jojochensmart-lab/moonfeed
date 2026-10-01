@@ -3,9 +3,11 @@
 ## 0.1.0 — Unreleased
 
 - Introduce unified Feed, FeedItem, Author, Attachment, and FeedLink types.
-- Parse the initial supported JSON Feed 1.1 field set into the unified model.
-- Preserve text/HTML and source dates; normalize tags and author/language inheritance.
-- Report typed errors with field paths; reject missing required fields, invalid
-  supported types, unsupported versions, empty IDs, and duplicate IDs.
-- Add 15 behavioral tests, shared fixtures, a runnable example, and architecture notes.
-- RSS, Atom, attachments, datetime parsing, CLI and registry publication remain planned.
+- Parse JSON Feed 1.1 and normalize its initial supported field set.
+- Add typed JSON errors, fixtures, runnable example, and initial architecture notes.
+- Adopt MoonBit >= v0.10.14 and Apache-2.0 `Milky2018/xml@0.5.0` for XML parsing.
+- Remove MoonBit deprecated syntax warnings from the project code.
+- Add RSS 2.0 parsing and normalization for channel/item core fields, categories,
+  authors, stable guid/link identity fallback, dates, and enclosures.
+- Add RSS technical-blog and Podcast-like fixtures plus XML edge-case tests.
+- Atom, full datetime normalization, CLI, and registry publication remain planned.

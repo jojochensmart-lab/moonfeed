@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:extra="urn:moonfeed:test">
+  <channel>
+    <title>MoonBit &amp; 开源</title>
+    <link>https://example.org/blog</link>
+    <description>A small technical blog</description>
+    <language>zh-CN</language>
+    <pubDate>Wed, 02 Oct 2002 13:00:00 GMT</pubDate>
+    <lastBuildDate>Wed, 02 Oct 2002 14:00:00 GMT</lastBuildDate>
+    <managingEditor>editor@example.org (Editor)</managingEditor>
+    <webMaster>webmaster@example.org</webMaster>
+    <category domain="https://example.org/topics">Programming</category>
+    <category>MoonBit</category>
+    <generator>MoonFeed fixture author</generator>
+    <docs>https://www.rssboard.org/rss-specification</docs>
+    <ttl>60</ttl>
+    <image>
+      <url>https://example.org/logo.png</url><title>Moon logo</title>
+      <link>https://example.org/</link><width>88</width><height>31</height>
+      <description>A moon icon</description>
+    </image>
+    <extra:title>This is not the channel title</extra:title>
+    <item>
+      <title>Parsing &lt;feeds&gt;</title>
+      <link>https://example.org/posts/parsing</link>
+      <description><![CDATA[<p>Build a parser <em>carefully</em>.</p>]]></description>
+      <author>writer@example.org (Writer)</author>
+      <category domain="topics">Libraries</category><category>MoonBit</category>
+      <comments>https://example.org/posts/parsing/comments</comments>
+      <guid isPermaLink="false">post:parsing</guid>
+      <pubDate>Wed, 02 Oct 2002 13:00:00 GMT</pubDate>
+      <source url="https://example.org/original.xml">Original blog</source>
+    </item>
+  </channel>
+</rss>

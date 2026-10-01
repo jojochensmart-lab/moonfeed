@@ -1,0 +1,8 @@
+<rss version="2.0">
+  <channel>
+    <title>Three posts</title><link>https://example.org/</link><description>Stable identities</description>
+    <item><title>First</title><guid>https://example.org/first</guid></item>
+    <item><description>Link identity</description><link>https://example.org/second</link></item>
+    <item><title>Offline note</title><description>A note without guid or link</description></item>
+  </channel>
+</rss>

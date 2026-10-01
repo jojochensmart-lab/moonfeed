@@ -84,7 +84,7 @@ fn authors(
         if name is None && url is None && avatar is None {
           raise InvalidValue(author_path, "author needs name, url or avatar")
         }
-        result.push({ name, url, avatar })
+        result.push({ name, url, avatar, })
       }
       Some(result)
     }
@@ -163,7 +163,7 @@ pub fn parse(input : String) -> @model.Feed raise ParseError {
   let feed_authors = authors(fields, "$").unwrap_or([])
   let language = optional_string(fields, "language", "$")
   let items = []
-  let ids : Map[String, Bool] = {}
+  let ids : Map[String, Bool] = Map([])
   for index, value in array(required(fields, "items", "$"), "$.items") {
     let path = "$.items[\{index}]"
     let parsed = item(value, path, feed_authors, language)

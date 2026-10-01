@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>MoonBit Conversations</title><link>https://example.org/podcast</link>
+    <description>Short conversations about programming</description><language>en</language>
+    <managingEditor>host@example.org</managingEditor>
+    <item>
+      <title>Episode 1: Feeds</title><link>https://example.org/episodes/1</link>
+      <description><![CDATA[<p>RSS, JSON Feed, and why interoperability matters.</p>]]></description>
+      <guid isPermaLink="false">episode-1</guid>
+      <pubDate>Wed, 02 Oct 2002 13:00:00 GMT</pubDate>
+      <enclosure url="https://example.org/audio/1.mp3?x=1&amp;y=2" type="audio/mpeg" length="4294967296"/>
+      <category>Technology</category>
+    </item>
+  </channel>
+</rss>

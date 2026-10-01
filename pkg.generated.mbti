@@ -4,10 +4,13 @@ package "joanna/moonfeed"
 import {
   "joanna/moonfeed/src/jsonfeed",
   "joanna/moonfeed/src/model",
+  "joanna/moonfeed/src/rss",
 }
 
 // Values
 pub fn parse_json_feed(String) -> @model.Feed raise @jsonfeed.ParseError
+
+pub fn parse_rss(String) -> @model.Feed raise @rss.ParseError
 
 // Errors
 
@@ -16,4 +19,3 @@ pub fn parse_json_feed(String) -> @model.Feed raise @jsonfeed.ParseError
 // Type aliases
 
 // Traits
-

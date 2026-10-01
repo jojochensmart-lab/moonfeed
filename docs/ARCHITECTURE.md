@@ -2,67 +2,54 @@
 
 ## Boundaries
 
-- Root package `joanna/moonfeed`: public `parse_json_feed` entry point.
-- `src/model`: shared `Feed`, `FeedItem`, `Author`, `Attachment`, `FeedLink` types.
-- `src/jsonfeed`: JSON decoding, supported-field validation and normalization.
-- `examples/basic`: executable example with exhaustive typed error handling.
-- `fixtures/jsonfeed` and `fixtures/malformed`: raw JSON strings consumed by tests.
+- Root package `joanna/moonfeed`: public `parse_json_feed` and `parse_rss` entry points.
+- `src/model`: shared `Feed`, `FeedItem`, `Author`, `Attachment`, and `FeedLink` types.
+- `src/jsonfeed`: JSON decoding, supported-field validation, and normalization.
+- `src/rss`: RSS XML event consumption, RSS-specific raw types, typed validation, and normalization.
+- `examples/basic`: executable JSON Feed example with typed error handling.
+- `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
-Reserved local directories: `src/detect`, `src/rss`, `src/atom`, `src/datetime`,
-`cli`, `fixtures/rss`, `fixtures/atom`. Empty directories are not tracked by Git.
-They will become packages only when their implementation exists.
+RSS / Atom parsing is built on `Milky2018/xml@0.5.0`, an Apache-2.0 licensed XML library. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
 
-## Data flow and decisions
+## Data flow
 
-`String -> core/json AST -> validated fields -> unified Feed`
+`RSS/XML String -> Milky2018/xml events -> RSS Node view -> RSS Channel/Item -> unified Feed`
 
-Parsing and normalization form one atomic operation. A separate raw JSON Feed
-model would duplicate the initial field set without serving a current consumer.
-The format-specific package owns mapping; the shared model depends on no parser.
-There is no I/O, global state, third-party dependency, or format autodetection.
+`JSON String -> core/json AST -> validated fields -> unified Feed`
 
-Optional scalars use `String?`; collections use ordered `Array`. Public structs
-have readable/constructible fields. Their arrays are mutable: inherited author
-arrays are copied so editing one item's authors cannot mutate the feed's authors.
-Dates stay as source strings until a dedicated datetime API exists. URLs and
-language tags are not semantically validated. HTML is preserved, not sanitized.
+The XML dependency owns tokenization, entity expansion, CDATA, attributes, namespace resolution, and well-formedness. MoonFeed only walks events to apply RSS semantics. It does not implement a second XML tokenizer.
 
-`tags` becomes `categories`, and item dates become `published` and `updated`.
-Absent item authors/language inherit feed values; explicitly empty authors do not.
-Feed categories, feed updated timestamp, and attachments have no implemented JSON
-mapping in this phase. `FeedLink` is a reserved type, not yet a field in `Feed`.
+## RSS parser layer
 
-## Validation contract
+`src/rss/parser.mbt` consumes `NamespaceReader` events and builds a small private element view. Namespaced children are ignored for RSS core mapping, while unnamespaced RSS elements are matched by local name. Text and CDATA are combined; surrounding XML whitespace is trimmed; XML entities are already decoded by the dependency; repeated `category` children remain ordered; self-closing elements are valid empty elements.
 
-The API raises typed `ParseError` values. Structural errors include a JSON-style
-field path. Unsupported versions have their own variant. An invalid supported
-field fails the whole operation; there is no implicit dropping of malformed items.
-Required fields must exist and have the expected type. An item needs a nonempty
-string ID and at least one content representation. Duplicate IDs are rejected.
-Unknown and currently unsupported fields are ignored rather than validated.
+The raw public RSS types retain channel metadata such as generator, docs, ttl, image, comments, source, guid permalink state, and enclosure attributes. The parser requires RSS root version `2.0`, one channel, channel `title` / `link` / `description`, and item `title` or `description`. An enclosure must be empty and have nonempty `url`, `type`, and unsigned decimal `length` attributes.
 
-This is an initial strict subset, not a complete JSON Feed conformance validator.
-Numeric ID coercion, deprecated `author`, attachments, RFC 3339 validation, URL
-validation, pagination and extension preservation are deferred. Explicit `null`
-is a type error for supported fields. Core JSON parser limits apply; additional
-input-size limits and streaming are not part of this API.
+## RSS normalization layer
+
+`src/rss/normalize.mbt` maps RSS raw values into the existing unified model:
+
+- channel title and description map to `Feed.title` and `Feed.description`;
+- channel link maps to `Feed.home_page_url`;
+- channel categories map to `Feed.categories`;
+- `lastBuildDate`, falling back to `pubDate`, maps to `Feed.updated`;
+- item guid maps to `FeedItem.id`; if absent, nonempty item link is the stable fallback;
+- an item with neither guid nor link returns `InvalidRequiredField` instead of receiving a random ID;
+- item title and link map to `title` and `url`;
+- item description is retained as both `summary` and `content_html` because RSS does not declare its markup semantics;
+- author becomes an `Author` with `name`; repeated categories become `FeedItem.categories`;
+- enclosure maps to one `Attachment` with url, MIME type, and byte length.
+
+RSS `source`, comments, guid permalink metadata, generator, docs, ttl, and image are retained in the raw RSS API. Fields with no unified-model slot are not silently used to invent semantics.
+
+## Dates and errors
+
+RSS and JSON Feed dates remain `String?` values. The parser preserves original RFC 822/RFC 1123 or RFC 3339 text; date parsing and normalization are planned for a later phase.
+
+RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Invalid XML, unsupported versions, missing channel/title/link/description, invalid enclosure attributes, and missing stable item identity are distinguished. The operation is atomic and does not return partial feeds.
 
 ## Verification and growth
 
-Blackbox tests exercise the root API and typed errors; fixture raw strings are
-compiled as test dependencies for backend-independent execution. The example is
-built with the project and can be run with `moon run examples/basic`.
+The current suite has 27 behavior tests: the original 15 JSON Feed tests plus RSS integration tests for real-world-shaped fixtures and XML dependency behavior. CI runs `moon --version`, `moonc -v`, `moon check`, `moon test`, `moon build`, and the example using the pinned v0.10.14 toolchain series.
 
-CI pins action revisions and installs the current stable MoonBit toolchain and core, then runs
-`moon check`, `moon test`, `moon build`, and the example on Ubuntu. Keep generated
-interfaces current with `moon info` and code formatted with `moon fmt`.
-
-Future RSS and Atom packages will normalize into the same model. Add parsers and
-fixtures together; avoid speculative empty packages. A future datetime layer must
-make timezone handling and invalid-date policy explicit before replacing strings.
-
-
-CI uses the official `latest` stable toolchain/core channel because the locally
-installed July 2026 version is not available under a retrievable archive version.
-Each run prints exact versions. Local July compatibility and CI current-stable
-compatibility are distinct checks; no local toolchain is upgraded automatically.
+Future Atom support should consume the same XML dependency and normalize into the same model. It is intentionally not part of this phase. A future datetime layer must make timezone handling and invalid-date policy explicit before replacing source strings.

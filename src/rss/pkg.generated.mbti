@@ -1,0 +1,94 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/src/rss"
+
+import {
+  "joanna/moonfeed/src/model",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn normalize(Channel) -> @model.Feed raise ParseError
+
+pub fn parse(String) -> @model.Feed raise ParseError
+
+pub fn parse_raw(String) -> Channel raise ParseError
+
+// Errors
+pub(all) suberror ParseError {
+  InvalidXml(String)
+  UnsupportedRssVersion(String)
+  MissingChannel
+  MissingChannelTitle
+  MissingChannelLink
+  MissingChannelDescription
+  InvalidEnclosure(String, String)
+  InvalidRequiredField(String, String)
+} derive(Eq, @debug.Debug)
+pub fn ParseError::equal(Self, Self) -> Bool
+pub fn ParseError::not_equal(Self, Self) -> Bool
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) struct Category {
+  value : String
+  domain : String?
+}
+
+pub(all) struct Channel {
+  title : String
+  link : String
+  description : String
+  language : String?
+  pub_date : String?
+  last_build_date : String?
+  managing_editor : String?
+  web_master : String?
+  categories : Array[Category]
+  generator : String?
+  docs : String?
+  ttl : UInt64?
+  image : Image?
+  items : Array[Item]
+}
+
+pub(all) struct Enclosure {
+  url : String
+  mime_type : String
+  length : UInt64
+}
+
+pub(all) struct Guid {
+  value : String
+  is_permalink : Bool
+}
+
+pub(all) struct Image {
+  url : String
+  title : String
+  link : String
+  width : UInt64?
+  height : UInt64?
+  description : String?
+}
+
+pub(all) struct Item {
+  title : String?
+  link : String?
+  description : String?
+  author : String?
+  categories : Array[Category]
+  comments : String?
+  enclosure : Enclosure?
+  guid : Guid?
+  pub_date : String?
+  source : Source?
+}
+
+pub(all) struct Source {
+  title : String
+  url : String
+}
+
+// Type aliases
+
+// Traits

@@ -13,3 +13,7 @@ keywords = [ "feed", "jsonfeed", "rss", "atom" ]
 preferred_target = "wasm-gc"
 
 description = "Standards-oriented RSS, Atom and JSON Feed parser and normalization toolkit for MoonBit"
+
+import {
+  "Milky2018/xml@0.5.0",
+}

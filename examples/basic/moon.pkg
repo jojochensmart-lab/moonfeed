@@ -3,6 +3,4 @@ import {
   "joanna/moonfeed/src/jsonfeed",
 }
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")
