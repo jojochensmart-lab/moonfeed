@@ -50,6 +50,7 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 27 behavior tests: the original 15 JSON Feed tests plus RSS integration tests for real-world-shaped fixtures and XML dependency behavior. CI runs `moon --version`, `moonc -v`, `moon check`, `moon test`, `moon build`, and the example using the pinned v0.10.14 toolchain series.
+The current suite has 27 behavior tests: the original 15 JSON Feed tests plus RSS integration tests for real-world-shaped fixtures and XML dependency behavior. CI runs `moon --version`, `moonc -v`, `moon check`, `moon test`, `moon build`, and the example. The installer action currently exposes only its official `latest` channel; each run prints exact versions, while local validation is pinned to v0.10.14.
 
 Future Atom support should consume the same XML dependency and normalize into the same model. It is intentionally not part of this phase. A future datetime layer must make timezone handling and invalid-date policy explicit before replacing source strings.
+
