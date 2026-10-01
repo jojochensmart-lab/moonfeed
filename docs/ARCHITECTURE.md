@@ -53,10 +53,16 @@ Blackbox tests exercise the root API and typed errors; fixture raw strings are
 compiled as test dependencies for backend-independent execution. The example is
 built with the project and can be run with `moon run examples/basic`.
 
-CI pins the MoonBit toolchain and core to the locally verified version, then runs
+CI pins action revisions and installs the current stable MoonBit toolchain and core, then runs
 `moon check`, `moon test`, `moon build`, and the example on Ubuntu. Keep generated
 interfaces current with `moon info` and code formatted with `moon fmt`.
 
 Future RSS and Atom packages will normalize into the same model. Add parsers and
 fixtures together; avoid speculative empty packages. A future datetime layer must
 make timezone handling and invalid-date policy explicit before replacing strings.
+
+
+CI uses the official `latest` stable toolchain/core channel because the locally
+installed July 2026 version is not available under a retrievable archive version.
+Each run prints exact versions. Local July compatibility and CI current-stable
+compatibility are distinct checks; no local toolchain is upgraded automatically.
