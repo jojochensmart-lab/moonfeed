@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/fixtures/malformed"
+
+// Values
+pub let invalid_json : String
+
+pub let missing_id : String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

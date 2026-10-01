@@ -2,3 +2,9 @@ import {
   "joanna/moonfeed/src/model",
   "joanna/moonfeed/src/jsonfeed",
 }
+
+import {
+  "joanna/moonfeed/fixtures/jsonfeed" @samples,
+  "joanna/moonfeed/fixtures/malformed",
+  "moonbitlang/core/test",
+} for "test"
