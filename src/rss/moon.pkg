@@ -1,5 +1,5 @@
 import {
-  "Milky2018/xml",
+  "joanna/moonfeed/src/xmlmini",
   "moonbitlang/core/string",
   "moonbitlang/core/debug",
   "joanna/moonfeed/src/model",

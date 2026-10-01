@@ -9,19 +9,19 @@
 - `examples/basic`: executable JSON Feed example with typed error handling.
 - `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
-RSS / Atom parsing is built on `Milky2018/xml@0.5.0`, an Apache-2.0 licensed XML library. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
+RSS XML parsing uses MoonFeed internal package `src/xmlmini`; `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
 
 ## Data flow
 
-`RSS/XML String -> Milky2018/xml events -> RSS Node view -> RSS Channel/Item -> unified Feed`
+`RSS/XML String -> src/xmlmini events -> RSS Node view -> RSS Channel/Item -> unified Feed`
 
 `JSON String -> core/json AST -> validated fields -> unified Feed`
 
-The XML dependency owns tokenization, entity expansion, CDATA, attributes, namespace resolution, and well-formedness. MoonFeed only walks events to apply RSS semantics. It does not implement a second XML tokenizer.
+`src/xmlmini` is a deliberately small internal event reader for the feed formats. It handles XML declarations, start/end/self-closing tags, quoted attributes, text, CDATA, comments, the five basic XML entities, decimal/hex numeric entities, and mismatched or unclosed tags. It keeps qualified names such as `content:encoded` intact and does not resolve namespace semantics. It does not implement DTD validation, external entities, XML 1.1, schemas, XPath, streaming I/O, or encoding conversion.
 
 ## RSS parser layer
 
-`src/rss/parser.mbt` consumes `NamespaceReader` events and builds a small private element view. Namespaced children are ignored for RSS core mapping, while unnamespaced RSS elements are matched by local name. Text and CDATA are combined; surrounding XML whitespace is trimmed; XML entities are already decoded by the dependency; repeated `category` children remain ordered; self-closing elements are valid empty elements.
+`src/rss/parser.mbt` consumes `src/xmlmini` events and builds a small private element view. RSS core fields are matched by their full unprefixed names; prefixed extension names remain intact and are ignored by core mapping. Text and CDATA are combined; surrounding XML whitespace is trimmed; entities are decoded by the internal reader; repeated `category` children remain ordered; self-closing elements are valid empty elements.
 
 The raw public RSS types retain channel metadata such as generator, docs, ttl, image, comments, source, guid permalink state, and enclosure attributes. The parser requires RSS root version `2.0`, one channel, channel `title` / `link` / `description`, and item `title` or `description`. An enclosure must be empty and have nonempty `url`, `type`, and unsigned decimal `length` attributes.
 
@@ -50,7 +50,7 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 27 behavior tests: the original 15 JSON Feed tests plus RSS integration tests for real-world-shaped fixtures and XML dependency behavior. CI runs `moon --version`, `moonc -v`, `moon check`, `moon test`, `moon build`, and the example. The installer action currently exposes only its official `latest` channel; each run prints exact versions, while local validation is pinned to v0.10.14.
+The current suite has 32 behavior tests: the original JSON Feed and RSS tests plus focused `xmlmini` event and malformed-input tests. CI uses the official `latest` installer channel, prints the installed MoonBit version, and runs `moon check`, `moon test`, `moon build`, and the example. Local validation uses MoonBit v0.10.14.
 
-Future Atom support should consume the same XML dependency and normalize into the same model. It is intentionally not part of this phase. A future datetime layer must make timezone handling and invalid-date policy explicit before replacing source strings.
+Future Atom support can consume the same internal XML event reader and normalize into the same model. It is intentionally not part of this phase. A future datetime layer must make timezone handling and invalid-date policy explicit before replacing source strings.
 

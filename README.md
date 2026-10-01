@@ -17,8 +17,8 @@
 
 - MoonBit >= v0.10.14
 - 当前开发验证使用 MoonBit `0.1.20260920` / `moonc v0.10.14+7d59c7ec9`。
-- GitHub Actions 固定使用同一 v0.10.14 工具链系列；后续兼容的新版本也可能可用，但每次升级都需要重新验证。
-- RSS / Atom 的 XML 能力来自 Apache-2.0 许可的 `Milky2018/xml@0.5.0`。
+- GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本；本地开发验证固定使用 v0.10.14，CI 实际版本每次需结合日志确认。
+- RSS XML 解析使用 MoonFeed 内部的 `src/xmlmini` 子集 reader，不依赖第三方 XML registry 包。
 
 实现依据：[JSON Feed 1.1 规范](https://www.jsonfeed.org/version/1.1/) 和 [RSS 2.0 规范](https://www.rssboard.org/rss-specification)。
 
@@ -82,7 +82,7 @@ test {
 
 支持 RSS 2.0 的 channel 核心字段：`title`、`link`、`description`、`language`、`pubDate`、`lastBuildDate`、`managingEditor`、`webMaster`、重复 `category`、`generator`、`docs`、`ttl`、基础 `image` 和 `item`。
 
-支持 item 字段：`title`、`link`、`description`、`author`、重复 `category`、`comments`、`enclosure`、`guid`、`pubDate` 和 `source`。解析由 `Milky2018/xml@0.5.0` 完成，支持 XML 声明、CDATA、实体、命名空间忽略、空白、自闭合元素和 enclosure 属性。
+支持 item 字段：`title`、`link`、`description`、`author`、重复 `category`、`comments`、`enclosure`、`guid`、`pubDate` 和 `source`。解析由 MoonFeed 内部 `src/xmlmini` reader 完成，支持 XML 声明、注释、CDATA、五种基础实体、十进制和十六进制数字实体、原样保留的带前缀名称、空白、自闭合元素和 enclosure 属性。
 
 - channel `link` → `Feed.home_page_url`；channel `category` → `Feed.categories`。
 - channel `lastBuildDate` 优先、否则 `pubDate` → `Feed.updated`；两者都保留原始字符串。

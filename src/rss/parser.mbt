@@ -1,25 +1,17 @@
 ///|
-// A small element view built from a validated XML event stream, not an XML lexer.
+// RSS nodes are built from the internal XML event stream.
 priv struct Node {
   name : String
-  namespace_uri : String?
   attributes : Map[String, String]
   children : Array[Node]
   text : StringBuilder
 }
 
 ///|
-fn node(element : @xml.NamespaceElement) -> Node {
-  let attributes : Map[String, String] = Map([])
-  for attribute in element.attributes {
-    if attribute.name.namespace_uri is None {
-      attributes.set(attribute.name.local_name, attribute.value)
-    }
-  }
+fn node(element : @xmlmini.XmlElement) -> Node {
   {
-    name: element.name.local_name,
-    namespace_uri: element.name.namespace_uri,
-    attributes,
+    name: element.name,
+    attributes: element.attributes,
     children: [],
     text: StringBuilder(),
   }
@@ -27,14 +19,14 @@ fn node(element : @xml.NamespaceElement) -> Node {
 
 ///|
 fn document(input : String) -> Node raise ParseError {
-  let reader = @xml.NamespaceReader::from_string(input)
+  let reader = @xmlmini.Reader::from_string(input)
   let stack : Array[Node] = []
   let roots : Array[Node] = []
   while true {
     let event = reader.read_event() catch {
-      error => raise InvalidXml(error.to_string())
+      _ => raise InvalidXml("malformed XML")
     }
-    match event.kind {
+    match event {
       Start(element) => {
         if stack.length() >= 256 {
           raise InvalidXml("element depth exceeds 256")
@@ -63,12 +55,7 @@ fn document(input : String) -> Node raise ParseError {
         if !stack.is_empty() {
           stack[stack.length() - 1].text.write_string(text)
         }
-      DocType(_) =>
-        raise InvalidXml(
-          "DOCTYPE is unsupported; external entities are never loaded",
-        )
       Eof => break
-      _ => ()
     }
   }
   guard roots.length() == 1 && stack.is_empty() else {
@@ -79,9 +66,7 @@ fn document(input : String) -> Node raise ParseError {
 
 ///|
 fn children(parent : Node, name : String) -> Array[Node] {
-  parent.children.filter(child => {
-    child.namespace_uri is None && child.name == name
-  })
+  parent.children.filter(child => child.name == name)
 }
 
 ///|
@@ -268,7 +253,7 @@ fn parse_item(element : Node, path : String) -> Item raise ParseError {
 /// Parse RSS 2.0 core fields while preserving metadata not represented by Feed.
 pub fn parse_raw(input : String) -> Channel raise ParseError {
   let root = document(input)
-  if root.name != "rss" || root.namespace_uri is Some(_) {
+  if root.name != "rss" || root.attributes.get("xmlns") is Some(_) {
     raise InvalidRequiredField("rss", "expected unnamespaced rss root")
   }
   let version = root.attributes.get("version").unwrap_or("")
