@@ -1,0 +1,64 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/src/model"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Attachment {
+  url : String
+  mime_type : String
+  title : String?
+  size_in_bytes : UInt64?
+  duration_in_seconds : Double?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Author {
+  name : String?
+  url : String?
+  avatar : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Feed {
+  title : String
+  description : String?
+  home_page_url : String?
+  feed_url : String?
+  language : String?
+  authors : Array[Author]
+  categories : Array[String]
+  updated : String?
+  items : Array[FeedItem]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct FeedItem {
+  id : String
+  title : String?
+  url : String?
+  external_url : String?
+  authors : Array[Author]
+  summary : String?
+  content_text : String?
+  content_html : String?
+  published : String?
+  updated : String?
+  language : String?
+  categories : Array[String]
+  attachments : Array[Attachment]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct FeedLink {
+  url : String
+  rel : String?
+  media_type : String?
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+
