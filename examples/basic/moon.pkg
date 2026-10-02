@@ -1,6 +1,5 @@
 import {
   "joanna/moonfeed",
-  "joanna/moonfeed/src/jsonfeed",
 }
 
 pkgtype(kind: "executable")

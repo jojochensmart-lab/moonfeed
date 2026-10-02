@@ -3,6 +3,8 @@ import {
   "joanna/moonfeed/src/jsonfeed",
   "joanna/moonfeed/src/rss",
   "joanna/moonfeed/src/atom",
+  "joanna/moonfeed/src/detect",
+  "moonbitlang/core/debug",
 }
 
 import {

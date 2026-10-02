@@ -9,8 +9,9 @@
 | JSON Feed 1.1 | supported / initial stable |
 | RSS 2.0 | supported / initial stable |
 | Atom 1.0 | supported |
+| Auto detection | supported |
 | 日期统一解析 | planned；当前保留原始字符串 |
-| 格式自动检测、CLI | planned |
+| CLI | planned |
 | Mooncakes 发布 | 尚未发布 |
 
 ## Requirements
@@ -47,6 +48,14 @@ moon run examples/basic
 import { "joanna/moonfeed" }
 ```
 
+统一入口会按内容识别 JSON Feed 1.1、RSS 2.0 或 Atom 1.0：
+
+```moonbit
+let feed = @moonfeed.parse(input)
+```
+
+也可以显式调用 `parse_json_feed`、`parse_rss` 或 `parse_atom`。统一 `parse` 的错误保留检测错误或对应格式 parser 的 typed error。
+
 解析 JSON Feed：
 
 ```moonbit
@@ -70,7 +79,7 @@ test {
 }
 ```
 
-两个入口都返回统一的 `Feed` 模型，并抛出各自的 typed error。完整错误匹配见 [可运行示例](examples/basic/main.mbt)。
+显式入口和统一入口都返回统一的 `Feed` 模型，并保留 typed errors。完整错误匹配见 [可运行示例](examples/basic/main.mbt)。
 
 ## JSON Feed 1.1
 
@@ -106,14 +115,14 @@ RSS 错误包括 `InvalidXml`、`UnsupportedRssVersion`、`MissingChannel`、cha
 
 最小调用：@moonfeed.parse_atom("<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:news</id><title>News</title><updated>2026-10-01T12:00:00Z</updated><entry><id>post-1</id><title>First post</title><updated>2026-10-01T12:00:00Z</updated><summary>Hello</summary></entry></feed>")，返回统一 Feed，条目 id 为 post-1。
 
-~~~moonbit
+```moonbit
 test {
   let feed = @moonfeed.parse_atom(
     #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:news</id><title>News</title><updated>2026-10-01T12:00:00Z</updated><entry><id>post-1</id><title>First post</title><updated>2026-10-01T12:00:00Z</updated><summary>Hello</summary></entry></feed>
   )
   assert_eq(feed.items[0].id, "post-1")
 }
-~~~
+```
 ## 开发与测试
 
 ```sh
@@ -124,12 +133,12 @@ moon test
 moon build
 ```
 
-当前共有 44 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini 和 12 个 Atom 测试，覆盖格式映射、links、作者继承、文本构造、namespace 与错误路径。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 53 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini、12 个 Atom 和 9 个自动检测/统一入口测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
 
 ## Roadmap
 
 - 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、测试、文档和 CI。
-- 后续：格式检测、日期统一解析、RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
+- 后续：日期统一解析、RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 

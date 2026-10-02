@@ -2,7 +2,8 @@
 
 ## Boundaries
 
-- Root package `joanna/moonfeed`: public `parse_json_feed`, `parse_rss`, and `parse_atom` entry points.
+- Root package `joanna/moonfeed`: public `parse` auto-detection entry point and explicit `parse_json_feed`, `parse_rss`, and `parse_atom` entry points.
+- `src/detect`: lightweight JSON Feed/RSS/Atom classification from the input prefix.
 - `src/model`: shared `Feed`, `FeedItem`, `Author`, `Attachment`, and `FeedLink` types.
 - `src/jsonfeed`: JSON decoding, supported-field validation, and normalization.
 - `src/rss`: RSS XML event consumption, RSS-specific raw types, typed validation, and normalization.
@@ -21,6 +22,26 @@ RSS XML parsing uses MoonFeed internal package `src/xmlmini`; `moon.mod` has no 
 
 `src/xmlmini` is a deliberately small internal event reader for the feed formats. It handles XML declarations, start/end/self-closing tags, quoted attributes, text, CDATA, comments, the five basic XML entities, decimal/hex numeric entities, and mismatched or unclosed tags. It keeps qualified names such as `content:encoded` intact and does not resolve namespace semantics. It does not implement DTD validation, external entities, XML 1.1, schemas, XPath, streaming I/O, or encoding conversion.
 
+## Format detection and unified parser
+
+Input is lightly classified by `src/detect` before the selected format parser runs:
+
+Input
+  ↓
+Format Detection
+  ├ JSON Feed candidate
+  ├ RSS
+  └ Atom
+  ↓
+Format-specific parser
+  ↓
+Normalizer
+  ↓
+Unified Feed Model
+
+The detector skips a leading UTF-8 BOM, XML whitespace, comments, and an XML declaration, then reads only the root start tag and its attributes. A leading opening brace selects a JSON Feed candidate; it does not validate JSON or the Feed schema. Exact rss roots select RSS. Exact feed roots select Atom unless they declare a different default namespace. atom:feed is accepted only when xmlns:atom declares the Atom URI. Other XML roots and prefixes are UnknownFormat; truncated declaration, comment, or root prefixes are MalformedPrefix.
+
+Detection is deliberately not complete format validation and does not parse the full document. Each existing parser owns syntax and schema validation. The unified ParseError preserves a DetectError or the corresponding JSON Feed, RSS, or Atom typed parser error. BOM removal is applied before dispatch so the JSON parser also receives a clean input string. Explicit format-specific entry points remain public.
 ## RSS parser layer
 
 `src/rss/parser.mbt` consumes `src/xmlmini` events and builds a small private element view. RSS core fields are matched by their full unprefixed names; prefixed extension names remain intact and are ignored by core mapping. Text and CDATA are combined; surrounding XML whitespace is trimmed; entities are decoded by the internal reader; repeated `category` children remain ordered; self-closing elements are valid empty elements.
@@ -65,7 +86,7 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 44 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, and 12 Atom tests. CI uses the official `latest` installer channel, prints the installed MoonBit version, and runs `moon check`, `moon test`, `moon build`, and the example. Local validation uses MoonBit v0.10.14.
+The current suite has 53 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, 12 Atom, and 9 detection/unified-entry tests. CI uses the official `latest` installer channel, prints the installed MoonBit version, and runs `moon check`, `moon test`, `moon build`, and the example. Local validation uses MoonBit v0.10.14.
 
 Atom consumes the same internal XML event reader and normalizes into the shared model. A future datetime layer must make timezone handling and invalid-date policy explicit before replacing source strings.
 
