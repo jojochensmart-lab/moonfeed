@@ -8,15 +8,15 @@ pub let full : String =
 
 ///|
 pub let multiple_entries : String =
-  #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:multi</id><title>Multiple</title><updated>raw-date</updated><entry><id>one</id><title>One</title><updated>u1</updated></entry><entry><id>two</id><title>Two</title><updated>u2</updated></entry></feed>
+  #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:multi</id><title>Multiple</title><updated>2024-01-02T03:04:05Z</updated><entry><id>one</id><title>One</title><updated>2024-01-02T03:04:05Z</updated></entry><entry><id>two</id><title>Two</title><updated>2024-01-02T03:04:05Z</updated></entry></feed>
 
 ///|
 pub let enclosure : String =
-  #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:enc</id><title>Media</title><updated>raw</updated><entry><id>audio</id><title>Audio</title><updated>raw</updated><link rel="enclosure" href="https://example.org/a.mp3" type="audio/mpeg" length="120" title="Audio"/><link rel="self" href="https://example.org/entries/audio"/><link rel="alternate" href="https://example.org/audio"/></entry></feed>
+  #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:enc</id><title>Media</title><updated>2024-01-02T03:04:05Z</updated><entry><id>audio</id><title>Audio</title><updated>2024-01-02T03:04:05Z</updated><link rel="enclosure" href="https://example.org/a.mp3" type="audio/mpeg" length="120" title="Audio"/><link rel="self" href="https://example.org/entries/audio"/><link rel="alternate" href="https://example.org/audio"/></entry></feed>
 
 ///|
 pub let namespaced : String =
-  #|<atom:feed xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ext="urn:extension"><atom:id>urn:prefix</atom:id><atom:title>Prefixed</atom:title><atom:updated>raw</atom:updated><atom:entry><atom:id>e</atom:id><atom:title><![CDATA[A & B]]></atom:title><atom:updated>date</atom:updated><ext:title>Ignore me</ext:title></atom:entry></atom:feed>
+  #|<atom:feed xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ext="urn:extension"><atom:id>urn:prefix</atom:id><atom:title>Prefixed</atom:title><atom:updated>2024-01-02T03:04:05Z</atom:updated><atom:entry><atom:id>e</atom:id><atom:title><![CDATA[A & B]]></atom:title><atom:updated>2024-01-02T03:04:05Z</atom:updated><ext:title>Ignore me</ext:title></atom:entry></atom:feed>
 
 ///|
 pub let github_release : String =

@@ -2,6 +2,7 @@
 package "joanna/moonfeed/src/atom"
 
 import {
+  "joanna/moonfeed/src/datetime",
   "joanna/moonfeed/src/model",
   "moonbitlang/core/debug",
 }
@@ -14,6 +15,7 @@ pub(all) suberror ParseError {
   InvalidXml(String)
   InvalidAtomRoot(String)
   InvalidRequiredField(String, String)
+  InvalidDateTime(String, @datetime.DateTimeError)
 } derive(Eq, @debug.Debug)
 pub fn ParseError::equal(Self, Self) -> Bool
 pub fn ParseError::not_equal(Self, Self) -> Bool

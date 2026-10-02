@@ -114,6 +114,10 @@ fn item(
 ) -> @model.FeedItem raise ParseError {
   let fields = object(value, path)
   let id = required_string(fields, "id", path)
+  let published = optional_string(fields, "date_published", path)
+  let updated = optional_string(fields, "date_modified", path)
+  let published_at = @datetime.parse_optional_datetime(published)
+  let updated_at = @datetime.parse_optional_datetime(updated)
   if id == "" {
     raise InvalidValue(path + ".id", "id must not be empty")
   }
@@ -139,8 +143,10 @@ fn item(
     summary: optional_string(fields, "summary", path),
     content_text,
     content_html,
-    published: optional_string(fields, "date_published", path),
-    updated: optional_string(fields, "date_modified", path),
+    published,
+    published_at,
+    updated,
+    updated_at,
     language,
     categories: tags(fields, path),
     attachments: [],
@@ -149,7 +155,7 @@ fn item(
 
 ///|
 /// Decode JSON Feed 1.1 into the unified model. No network or filesystem access.
-/// Unsupported fields are ignored. Dates and URLs are preserved without validation.
+/// Unsupported fields are ignored. Date strings are preserved and parsed best-effort; URLs are retained without validation.
 pub fn parse(input : String) -> @model.Feed raise ParseError {
   let value = @json.parse(input) catch {
     error => raise InvalidJson(error.to_string())
@@ -182,6 +188,7 @@ pub fn parse(input : String) -> @model.Feed raise ParseError {
     authors: feed_authors,
     categories: [],
     updated: None,
+    updated_at: None,
     items,
   }
 }

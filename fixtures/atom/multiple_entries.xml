@@ -1,1 +1,1 @@
-<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:multi</id><title>Multiple</title><updated>raw-date</updated><entry><id>one</id><title>One</title><updated>u1</updated></entry><entry><id>two</id><title>Two</title><updated>u2</updated></entry></feed>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:multi</id><title>Multiple</title><updated>2024-01-02T03:04:05Z</updated><entry><id>one</id><title>One</title><updated>2024-01-02T03:04:05Z</updated></entry><entry><id>two</id><title>Two</title><updated>2024-01-02T03:04:05Z</updated></entry></feed>

@@ -10,7 +10,7 @@
 | RSS 2.0 | supported / initial stable |
 | Atom 1.0 | supported |
 | Auto detection | supported |
-| 日期统一解析 | planned；当前保留原始字符串 |
+| Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | planned |
 | Mooncakes 发布 | 尚未发布 |
 
@@ -94,7 +94,7 @@ test {
 支持 item 字段：`title`、`link`、`description`、`author`、重复 `category`、`comments`、`enclosure`、`guid`、`pubDate` 和 `source`。解析由 MoonFeed 内部 `src/xmlmini` reader 完成，支持 XML 声明、注释、CDATA、五种基础实体、十进制和十六进制数字实体、原样保留的带前缀名称、空白、自闭合元素和 enclosure 属性。
 
 - channel `link` → `Feed.home_page_url`；channel `category` → `Feed.categories`。
-- channel `lastBuildDate` 优先、否则 `pubDate` → `Feed.updated`；两者都保留原始字符串。
+- channel `lastBuildDate` 优先、否则 `pubDate` → `Feed.updated`；选中的原始字符串保留，成功解析时另提供 Feed.updated_at。item pubDate 映射到 published / published_at。
 - item `guid` → `FeedItem.id`；缺失 guid 时使用非空 `link`；两者都缺失时返回 `InvalidRequiredField`，不生成随机 ID。
 - item `description` → `summary` 和 `content_html`；RSS 不声明内容是否为 HTML，因此保留同一原始值。
 - item `author` → 单个 `Author.name`；item `category` → `FeedItem.categories`。
@@ -104,7 +104,7 @@ RSS 错误包括 `InvalidXml`、`UnsupportedRssVersion`、`MissingChannel`、cha
 
 ## Atom 1.0
 
-通过 `parse_atom` 解析 Atom 1.0 并规范化到统一模型。支持 feed 的 id/title/subtitle/updated、作者、category 和 self/alternate link，以及 entry 的 id/title/updated/published、作者继承、category、summary、content 和 enclosure link。category 的 term 映射到 categories；日期保留原始字符串。
+通过 `parse_atom` 解析 Atom 1.0 并规范化到统一模型。支持 feed 的 id/title/subtitle/updated、作者、category 和 self/alternate link，以及 entry 的 id/title/updated/published、作者继承、category、summary、content 和 enclosure link。category 的 term 映射到 categories；日期保留原始字符串，成功解析后另提供 updated_at / published_at。Atom 的 required updated 必须可解析。
 
 - feed rel=self 映射到 Feed.feed_url；rel=alternate 或未指定 rel 映射到 Feed.home_page_url。
 - entry rel=alternate 或未指定 rel 映射到 FeedItem.url；rel=enclosure 映射到 Attachment 的 href、type、title、length。
@@ -123,6 +123,22 @@ test {
   assert_eq(feed.items[0].id, "post-1")
 }
 ```
+## Date normalization
+
+The existing published / updated fields retain the source date values produced by each format parser. When valid, adjacent published_at / updated_at fields contain a DateTime with the original raw string and normalized unix_seconds (Int64). Compare instants with DateTime::compare; serialize the integer value as needed.
+
+This instant is 2002-10-02T13:00:00Z, represented as UTC Unix seconds. The public parse_datetime, parse_rfc3339, and parse_rss_datetime functions are available. For example:
+
+~~~moonbit
+let date = @moonfeed.parse_rss_datetime("Wed, 02 Oct 2002 13:00:00 GMT")
+assert_eq(date.raw, "Wed, 02 Oct 2002 13:00:00 GMT")
+assert_eq(date.unix_seconds, 1033563600L)
+~~~
+
+RFC 3339 accepts a required Z or numeric ±HH:MM offset. RSS dates accept an optional abbreviated English weekday, GMT / UTC, and numeric ±HHMM or ±HH:MM offsets. Other timezone abbreviations are rejected rather than guessed. Fractional seconds are validated and truncated to whole seconds. Leap seconds and years outside 0001–9999 are unsupported.
+
+Malformed optional JSON Feed and RSS dates, and Atom published, do not reject the feed: their raw value remains available and the parsed field is None. Atom feed/entry updated is required and invalid values return a path-bearing typed Atom error.
+
 ## 开发与测试
 
 ```sh
@@ -133,12 +149,12 @@ moon test
 moon build
 ```
 
-当前共有 53 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini、12 个 Atom 和 9 个自动检测/统一入口测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 67 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini、12 个 Atom、9 个自动检测/统一入口和 14 个日期解析/集成测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
 
 ## Roadmap
 
 - 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、测试、文档和 CI。
-- 后续：日期统一解析、RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
+- 后续：RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 

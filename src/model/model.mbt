@@ -25,7 +25,7 @@ pub(all) struct FeedLink {
 } derive(Eq, @debug.Debug)
 
 ///|
-/// Format-independent item. Dates are preserved strings, not validated timestamps.
+/// Format-independent item. Original date strings are preserved alongside optional normalized UTC instants.
 pub(all) struct FeedItem {
   id : String
   title : String?
@@ -36,7 +36,9 @@ pub(all) struct FeedItem {
   content_text : String?
   content_html : String?
   published : String?
+  published_at : @datetime.DateTime?
   updated : String?
+  updated_at : @datetime.DateTime?
   language : String?
   categories : Array[String]
   attachments : Array[Attachment]
@@ -53,5 +55,6 @@ pub(all) struct Feed {
   authors : Array[Author]
   categories : Array[String]
   updated : String?
+  updated_at : @datetime.DateTime?
   items : Array[FeedItem]
 } derive(Eq, @debug.Debug)

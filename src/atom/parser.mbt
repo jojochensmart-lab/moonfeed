@@ -3,6 +3,7 @@ pub(all) suberror ParseError {
   InvalidXml(String)
   InvalidAtomRoot(String)
   InvalidRequiredField(String, String)
+  InvalidDateTime(String, @datetime.DateTimeError)
 } derive(Eq, @debug.Debug)
 
 ///|
@@ -294,6 +295,11 @@ fn entry(
     raise InvalidRequiredField(path + ".title", "missing or empty element")
   }
   let updated = required_text(node, "updated", path)
+  let updated_at = @datetime.parse_datetime(updated) catch {
+    error => raise InvalidDateTime(path + ".updated", error)
+  }
+  let published = optional_text(node, "published", path)
+  let published_at = @datetime.parse_optional_datetime(published)
   let (url, _, attachments) = link_values(node, path)
   let authors = persons(node, "author")
   let summary = construct(node, "summary", path)
@@ -323,8 +329,10 @@ fn entry(
     } else {
       None
     },
-    published: optional_text(node, "published", path),
+    published,
+    published_at,
     updated: Some(updated),
+    updated_at: Some(updated_at),
     language: None,
     categories: categories(node, path),
     attachments,
@@ -332,7 +340,7 @@ fn entry(
 }
 
 ///|
-/// Parse and normalize an Atom 1.0 feed. Date values remain unchanged strings.
+/// Parse and normalize an Atom 1.0 feed. Original date strings remain available; successfully parsed dates also carry normalized UTC instants. Invalid required updated dates return typed errors.
 pub fn parse(input : String) -> @model.Feed raise ParseError {
   let root = doc(input)
   if !named(root, "feed") {
@@ -344,6 +352,9 @@ pub fn parse(input : String) -> @model.Feed raise ParseError {
     raise InvalidRequiredField("feed.title", "missing or empty element")
   }
   let updated = required_text(root, "updated", "feed")
+  let updated_at = @datetime.parse_datetime(updated) catch {
+    error => raise InvalidDateTime("feed.updated", error)
+  }
   let authors = persons(root, "author")
   let (home_page_url, feed_url, _) = link_values(root, "feed")
   let entries = []
@@ -359,6 +370,7 @@ pub fn parse(input : String) -> @model.Feed raise ParseError {
     authors,
     categories: categories(root, "feed"),
     updated: Some(updated),
+    updated_at: Some(updated_at),
     items: entries,
   }
 }

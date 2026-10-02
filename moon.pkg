@@ -1,5 +1,6 @@
 import {
   "joanna/moonfeed/src/model",
+  "joanna/moonfeed/src/datetime",
   "joanna/moonfeed/src/jsonfeed",
   "joanna/moonfeed/src/rss",
   "joanna/moonfeed/src/atom",

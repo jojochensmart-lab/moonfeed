@@ -1,5 +1,6 @@
 import {
   "joanna/moonfeed/src/model",
+  "joanna/moonfeed/src/datetime",
   "moonbitlang/core/json",
   "moonbitlang/core/debug",
 }

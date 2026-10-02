@@ -46,6 +46,8 @@ fn attachment(enclosure : Enclosure) -> @model.Attachment {
 fn normalize_item(item : Item, index : Int) -> @model.FeedItem raise ParseError {
   let path = "channel.item[\{index}]"
   let description = item.description
+  let published = item.pub_date
+  let published_at = @datetime.parse_optional_datetime(published)
   {
     id: item_id(item, path),
     title: item.title,
@@ -55,8 +57,10 @@ fn normalize_item(item : Item, index : Int) -> @model.FeedItem raise ParseError 
     summary: description,
     content_text: None,
     content_html: description,
-    published: item.pub_date,
+    published,
+    published_at,
     updated: None,
+    updated_at: None,
     language: None,
     categories: category_values(item.categories),
     attachments: match item.enclosure {
@@ -75,6 +79,7 @@ pub fn normalize(channel : Channel) -> @model.Feed raise ParseError {
     Some(value) => Some(value)
     None => channel.pub_date
   }
+  let updated_at = @datetime.parse_optional_datetime(updated)
   let items = []
   for index, item in channel.items {
     items.push(normalize_item(item, index))
@@ -91,6 +96,7 @@ pub fn normalize(channel : Channel) -> @model.Feed raise ParseError {
     },
     categories: category_values(channel.categories),
     updated,
+    updated_at,
     items,
   }
 }

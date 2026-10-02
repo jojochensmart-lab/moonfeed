@@ -1,3 +1,4 @@
 import {
+  "joanna/moonfeed/src/datetime",
   "moonbitlang/core/debug",
 }

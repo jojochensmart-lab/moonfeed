@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "joanna/moonfeed/src/datetime"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse_datetime(String) -> DateTime raise DateTimeError
+
+pub fn parse_optional_datetime(String?) -> DateTime?
+
+pub fn parse_rfc3339(String) -> DateTime raise DateTimeError
+
+pub fn parse_rss_datetime(String) -> DateTime raise DateTimeError
+
+// Errors
+pub(all) suberror DateTimeError {
+  InvalidFormat
+  InvalidYear
+  InvalidMonth
+  InvalidDay
+  InvalidTime
+  InvalidOffset
+  UnsupportedTimezone(String)
+} derive(Eq, @debug.Debug)
+pub fn DateTimeError::equal(Self, Self) -> Bool
+pub fn DateTimeError::not_equal(Self, Self) -> Bool
+pub fn DateTimeError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) struct DateTime {
+  raw : String
+  unix_seconds : Int64
+} derive(Eq, @debug.Debug)
+pub fn DateTime::compare(Self, Self) -> Int
+pub fn DateTime::equal(Self, Self) -> Bool
+pub fn DateTime::not_equal(Self, Self) -> Bool
+pub fn DateTime::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

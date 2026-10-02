@@ -3,4 +3,5 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/debug",
   "joanna/moonfeed/src/model",
+  "joanna/moonfeed/src/datetime",
 }

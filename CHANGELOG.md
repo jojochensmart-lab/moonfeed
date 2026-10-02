@@ -13,4 +13,6 @@
 - Add Atom 1.0 parsing and normalization for feeds, entries, links, authors, categories, text constructs, and enclosures; retain date strings unchanged.
 - Add Atom fixtures for minimal, full, prefixed, enclosure, multiple-entry, release, and technical-blog shapes, plus typed error tests.
 - Add lightweight JSON Feed/RSS/Atom format detection and a unified parse entry point that preserves typed parser errors.
-- Full datetime normalization, CLI, and registry publication remain planned.
+- Add typed RFC 3339 and RSS date parsing, timezone offset normalization, and unified UTC Unix-second values while preserving source dates.
+- Integrate optional and required parsed dates into Feed / FeedItem; malformed optional dates retain raw values, invalid Atom updated dates return typed errors.
+- CLI and registry publication remain planned.

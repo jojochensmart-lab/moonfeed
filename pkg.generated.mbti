@@ -3,6 +3,7 @@ package "joanna/moonfeed"
 
 import {
   "joanna/moonfeed/src/atom",
+  "joanna/moonfeed/src/datetime",
   "joanna/moonfeed/src/detect",
   "joanna/moonfeed/src/jsonfeed",
   "joanna/moonfeed/src/model",
@@ -15,9 +16,15 @@ pub fn parse(String) -> @model.Feed raise ParseError
 
 pub fn parse_atom(String) -> @model.Feed raise @atom.ParseError
 
+pub fn parse_datetime(String) -> @datetime.DateTime raise @datetime.DateTimeError
+
 pub fn parse_json_feed(String) -> @model.Feed raise @jsonfeed.ParseError
 
+pub fn parse_rfc3339(String) -> @datetime.DateTime raise @datetime.DateTimeError
+
 pub fn parse_rss(String) -> @model.Feed raise @rss.ParseError
+
+pub fn parse_rss_datetime(String) -> @datetime.DateTime raise @datetime.DateTimeError
 
 // Errors
 pub(all) suberror ParseError {

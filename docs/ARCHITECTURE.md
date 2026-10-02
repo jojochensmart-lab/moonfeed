@@ -67,7 +67,7 @@ RSS `source`, comments, guid permalink metadata, generator, docs, ttl, and image
 
 ## Atom parser and normalization
 
-src/atom consumes the shared src/xmlmini event stream. It requires feed id, title, and updated, and requires entry id, title, and updated. Feed id is validated but the shared model has no feed-id field. Entry ids are copied verbatim and are never synthesized. Date strings remain unchanged; no RFC 3339 validation or timezone conversion occurs.
+src/atom consumes the shared src/xmlmini event stream. It requires feed id, title, and updated, and requires entry id, title, and updated. Feed id is validated but the shared model has no feed-id field. Entry ids are copied verbatim and are never synthesized. Original date strings remain available; successfully parsed dates also carry normalized UTC instants. Invalid required updated dates return typed errors.
 
 Feed subtitle maps to Feed.description; feed self and alternate links map to feed_url and home_page_url. Entry alternate links map to FeedItem.url; enclosure links map to attachments. An omitted rel defaults to alternate. The first alternate and first self link are used. Link type, hreflang, and title metadata outside enclosure attachments are not retained. Unknown rel values are ignored because Feed has no link-collection slot.
 
@@ -78,7 +78,13 @@ Text constructs default to type=text: text maps to content_text, html maps to co
 Namespace matching recognizes unprefixed names and the literal atom: prefix by local name. It does not validate namespace URIs or resolve arbitrary prefix bindings. Other prefixed elements such as ext:title are ignored. This covers required common shapes while keeping xmlmini feed-focused rather than introducing a complete namespace engine.
 ## Dates and errors
 
-RSS and JSON Feed dates remain `String?` values. The parser preserves original RFC 822/RFC 1123 or RFC 3339 text; date parsing and normalization are planned for a later phase.
+Parser output follows the path Format parser -> raw date -> src/datetime -> normalized UTC representation -> unified Feed model. The existing String? date fields remain available as extracted by their format parsers. Feed.updated_at, FeedItem.published_at, and FeedItem.updated_at hold an optional DateTime { raw, unix_seconds }; Unix seconds use Int64, giving a comparable and serializable UTC instant. The MoonBit v0.10.14 core library has no calendar parser suitable for these feed formats, so src/datetime implements only the constrained feed-date subset.
+
+RFC 3339 requires Z or a numeric ±HH:MM offset. RSS accepts an optional abbreviated weekday, English three-letter month names, GMT, UTC, or numeric ±HHMM / ±HH:MM offsets. Weekdays are syntax only and are not verified against the calendar date. Ambiguous abbreviations such as EST, PST, and CST return UnsupportedTimezone; no DST database or abbreviation guessing is used.
+
+Calendar fields, Gregorian leap years, clock fields, and offsets are validated. Supported years are 0001–9999. Leap seconds are rejected. RFC 3339 fractional digits must be nonempty and are truncated to whole seconds; the Unix value denotes the beginning of that second.
+
+Invalid optional JSON Feed/RSS dates and Atom published values do not reject the Feed: raw remains intact and the parsed field is None. Atom feed/entry updated values are required; an invalid value returns InvalidDateTime with its field path and typed DateTimeError. A missing required Atom updated retains the existing missing-field error.
 
 Atom also raises InvalidXml, InvalidAtomRoot, and InvalidRequiredField errors with paths such as feed.entry[2].link[1].href or feed.entry[1].category[0].term.
 
@@ -86,7 +92,7 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 53 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, 12 Atom, and 9 detection/unified-entry tests. CI uses the official `latest` installer channel, prints the installed MoonBit version, and runs `moon check`, `moon test`, `moon build`, and the example. Local validation uses MoonBit v0.10.14.
+The current suite has 67 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, 12 Atom, 9 detection/unified-entry, and 14 datetime parsing/integration tests. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
 
-Atom consumes the same internal XML event reader and normalizes into the shared model. A future datetime layer must make timezone handling and invalid-date policy explicit before replacing source strings.
+Atom consumes the same internal XML event reader and normalizes into the shared model. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.
 
