@@ -12,7 +12,7 @@
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
-| Mooncakes 发布 | 尚未发布 |
+| Mooncakes 发布 | `joanna/moonfeed@0.1.0` |
 
 ## Requirements
 
@@ -25,7 +25,13 @@
 
 ## 安装与运行
 
-本库尚未发布到 Mooncakes，请从源码使用：
+从 Mooncakes 安装已发布的 `0.1.0`：
+
+```sh
+moon add joanna/moonfeed@0.1.0
+```
+
+也可以从 GitHub 源码运行和开发：
 
 ```sh
 git clone https://github.com/jojochensmart-lab/moonfeed.git
@@ -38,7 +44,7 @@ moon build
 moon run examples/basic
 ```
 
-模块名称为 `joanna/moonfeed`，对应当前 Mooncakes 账号 `joanna`；GitHub 项目属于 `jojochensmart-lab`。首次 Mooncakes 发布完成后，使用方可通过 `moon add joanna/moonfeed` 安装；该命令目前尚不可用。
+模块名称为 `joanna/moonfeed`，对应 Mooncakes 账号 `joanna`；GitHub 项目属于 `jojochensmart-lab`。发布版本可在 [Mooncakes](https://mooncakes.io/docs/joanna/moonfeed) 查看。
 
 ## CLI
 
