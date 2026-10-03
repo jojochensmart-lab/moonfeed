@@ -8,8 +8,8 @@ repository = "https://github.com/jojochensmart-lab/moonfeed"
 
 license = "Apache-2.0"
 
-keywords = [ "feed", "jsonfeed", "rss", "atom" ]
+keywords = [ "feed", "rss", "atom", "json-feed", "parser" ]
 
 preferred_target = "wasm-gc"
 
-description = "Standards-oriented RSS, Atom and JSON Feed parser and normalization toolkit for MoonBit"
+description = "RSS 2.0, Atom 1.0 and JSON Feed 1.1 parsing and normalization for MoonBit."

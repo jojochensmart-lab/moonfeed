@@ -12,7 +12,7 @@
 - `cli`: Node.js-hosted executable frontend for detect, inspect, and normalized JSON output; it delegates parsing to the public unified entry point.
 - `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
-RSS XML parsing uses MoonFeed internal package `src/xmlmini`; `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
+RSS XML parsing uses MoonFeed internal package `src/xmlmini`; it is not re-exported from the root library API and is not supported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
 
 ## CLI data flow
 

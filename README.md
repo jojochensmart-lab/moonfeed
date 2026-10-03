@@ -38,11 +38,11 @@ moon build
 moon run examples/basic
 ```
 
-模块名称为 `joanna/moonfeed`，采用当前 Mooncakes 账号命名空间；GitHub 项目属于 `jojochensmart-lab`。发布前可能调整模块名，请勿假定已经可以通过 `moon add joanna/moonfeed` 从注册中心安装。
+模块名称为 `joanna/moonfeed`，对应当前 Mooncakes 账号 `joanna`；GitHub 项目属于 `jojochensmart-lab`。首次 Mooncakes 发布完成后，使用方可通过 `moon add joanna/moonfeed` 安装；该命令目前尚不可用。
 
 ## CLI
 
-从仓库源码运行 CLI（需要 Node.js）：
+从仓库源码运行 CLI（需要 Node.js；当前提供 MoonBit/Node.js 运行入口，不提供独立 native executable）：
 
 ```sh
 moon run cli --target js -- detect fixtures/rss/full.xml
@@ -50,7 +50,7 @@ moon run cli --target js -- inspect fixtures/atom/full.xml
 moon run cli --target js -- normalize fixtures/jsonfeed/full.json
 ```
 
-`inspect` 最多显示前 5 条；`normalize` 输出统一 Feed JSON，空的可选字段为 `null`，集合字段为空时为 `[]`，日期保留原始值并额外提供 UTC Unix 秒。路径使用 `-` 可从 stdin 读取。命令错误写入 stderr 并以状态码 2 退出；成功返回 0。
+`inspect` 最多显示前 5 条；`normalize` 输出统一 Feed JSON：Feed 包含 `title`、`description`、链接、语言、作者、分类和条目；条目包含 id、标题、URL、summary/content、发布日期与更新日期、作者、分类和 attachments。可选值为 `null`，集合为空时为 `[]`；日期保留原始字符串并附带 UTC Unix 秒。路径使用 `-` 可从 stdin 读取。命令错误写入 stderr 并以状态码 2 退出；成功返回 0。
 
 示例概要：
 
@@ -59,6 +59,10 @@ Format: RSS 2.0
 Title: Example Feed
 Items: 2
 ```
+## 当前限制
+
+MoonFeed 只解析本地传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 扩展 namespace 与 Podcast 扩展字段尚未纳入统一模型；Atom 不支持 AtomPub。XML reader 是内部实现，只覆盖 Feed parser 需要的 XML 子集，限制见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
+
 ## API 示例
 
 在使用方的 `moon.pkg` 中加入：
