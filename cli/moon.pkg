@@ -1,0 +1,9 @@
+import {
+  "joanna/moonfeed",
+  "joanna/moonfeed/src/model",
+  "joanna/moonfeed/src/detect",
+  "moonbitlang/core/env",
+  "moonbitlang/core/debug",
+}
+
+pkgtype(kind: "executable")

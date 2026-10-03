@@ -9,9 +9,16 @@
 - `src/rss`: RSS XML event consumption, RSS-specific raw types, typed validation, and normalization.
 - `src/atom`: Atom 1.0 XML event consumption, field validation, and normalization.
 - `examples/basic`: executable JSON Feed example with typed error handling.
+- `cli`: Node.js-hosted executable frontend for detect, inspect, and normalized JSON output; it delegates parsing to the public unified entry point.
 - `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
 RSS XML parsing uses MoonFeed internal package `src/xmlmini`; `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
+
+## CLI data flow
+
+`File or stdin -> CLI -> parse(input) -> Detection -> Format Parser -> Normalization -> Unified Feed -> Inspect or core JSON serialization`
+
+The CLI contains no format parser. It reads bytes/text through Node.js host APIs, calls the same library parser used by applications, and serializes its result with the MoonBit core JSON AST/stringifier.
 
 ## Data flow
 
@@ -92,7 +99,6 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 67 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, 12 Atom, 9 detection/unified-entry, and 14 datetime parsing/integration tests. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
+The current suite has 72 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, 12 Atom, 9 detection/unified-entry, 14 datetime parsing/integration, and 5 CLI tests. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
 
 Atom consumes the same internal XML event reader and normalizes into the shared model. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.
-

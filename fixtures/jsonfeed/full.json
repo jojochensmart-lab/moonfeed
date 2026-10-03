@@ -1,0 +1,17 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "MoonFeed Demo — News & Notes",
+  "home_page_url": "https://example.org/",
+  "feed_url": "https://example.org/feed.json",
+  "language": "en",
+  "authors": [{"name": "MoonFeed Editor", "url": "https://example.org/about"}],
+  "items": [{
+    "id": "demo-1",
+    "title": "A normalized feed",
+    "url": "https://example.org/posts/demo-1",
+    "summary": "A short summary with \"quotes\" and Unicode: 月",
+    "content_text": "Hello from MoonFeed.",
+    "date_published": "2026-10-01T12:00:00Z",
+    "tags": ["moonbit", "feeds"]
+  }]
+}

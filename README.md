@@ -11,7 +11,7 @@
 | Atom 1.0 | supported |
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
-| CLI | planned |
+| CLI | supported |
 | Mooncakes 发布 | 尚未发布 |
 
 ## Requirements
@@ -40,6 +40,25 @@ moon run examples/basic
 
 模块名称为 `joanna/moonfeed`，采用当前 Mooncakes 账号命名空间；GitHub 项目属于 `jojochensmart-lab`。发布前可能调整模块名，请勿假定已经可以通过 `moon add joanna/moonfeed` 从注册中心安装。
 
+## CLI
+
+从仓库源码运行 CLI（需要 Node.js）：
+
+```sh
+moon run cli --target js -- detect fixtures/rss/full.xml
+moon run cli --target js -- inspect fixtures/atom/full.xml
+moon run cli --target js -- normalize fixtures/jsonfeed/full.json
+```
+
+`inspect` 最多显示前 5 条；`normalize` 输出统一 Feed JSON，空的可选字段为 `null`，集合字段为空时为 `[]`，日期保留原始值并额外提供 UTC Unix 秒。路径使用 `-` 可从 stdin 读取。命令错误写入 stderr 并以状态码 2 退出；成功返回 0。
+
+示例概要：
+
+```text
+Format: RSS 2.0
+Title: Example Feed
+Items: 2
+```
 ## API 示例
 
 在使用方的 `moon.pkg` 中加入：
@@ -149,12 +168,12 @@ moon test
 moon build
 ```
 
-当前共有 67 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini、12 个 Atom、9 个自动检测/统一入口和 14 个日期解析/集成测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 72 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini、12 个 Atom、9 个自动检测/统一入口、14 个日期解析/集成测试和 5 个 CLI 测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
 
 ## Roadmap
 
 - 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、测试、文档和 CI。
-- 后续：RSS 扩展 namespace、CLI、性能和 Mooncakes 发布。
+- 后续：RSS 扩展 namespace、性能和 Mooncakes 发布。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 
