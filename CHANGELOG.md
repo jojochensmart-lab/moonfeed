@@ -25,3 +25,7 @@
 - Parse Apple Podcasts/iTunes RSS show and episode metadata through a dedicated API; normalize episode duration into enclosure attachments.
 - Add Podcast metadata coverage for show and episode fields, validation errors, and CLI normalized output.
 - Document Podcast support, API usage, supported fields, and current XML/extension limitations.
+
+## 0.1.2 — 2026-10-20
+
+- Export `detect_format(...)` from the root package so registry users can call the documented format detection API.

@@ -25,6 +25,14 @@ test "format detector identifies each supported family" {
 }
 
 ///|
+test "format detector is exported by the root package" {
+  @test.assert_eq(
+    @moonfeed.detect_format(@samples.minimal),
+    @detect.FeedFormat::JsonFeed,
+  )
+}
+
+///|
 test "format detector skips leading whitespace and UTF-8 BOM" {
   @test.assert_eq(
     @detect.detect_format(" \r\n\t" + @samples.minimal),

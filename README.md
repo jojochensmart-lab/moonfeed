@@ -13,7 +13,7 @@
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
-| Mooncakes 发布 | `joanna/moonfeed@0.1.1` |
+| Mooncakes 发布 | `joanna/moonfeed@0.1.2` |
 
 ## Requirements
 
@@ -26,10 +26,10 @@
 
 ## 安装与运行
 
-从 Mooncakes 安装已发布的 `0.1.1`：
+从 Mooncakes 安装已发布的 `0.1.2`：
 
 ```sh
-moon add joanna/moonfeed@0.1.1
+moon add joanna/moonfeed@0.1.2
 ```
 
 也可以从 GitHub 源码运行和开发：
@@ -201,7 +201,7 @@ moon build
 
 ## Roadmap
 
-- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes `joanna/moonfeed@0.1.1` 发布。
+- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes `joanna/moonfeed@0.1.2` 发布。
 - 后续：Media RSS 等扩展、兼容性与性能改进。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。

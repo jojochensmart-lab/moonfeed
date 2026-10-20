@@ -12,6 +12,8 @@ import {
 }
 
 // Values
+pub fn detect_format(String) -> @detect.FeedFormat raise @detect.DetectError
+
 pub fn parse(String) -> @model.Feed raise ParseError
 
 pub fn parse_atom(String) -> @model.Feed raise @atom.ParseError
