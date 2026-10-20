@@ -104,5 +104,5 @@ pub fn normalize(channel : Channel) -> @model.Feed raise ParseError {
 ///|
 /// Parse and normalize an RSS 2.0 document in one operation.
 pub fn parse(input : String) -> @model.Feed raise ParseError {
-  normalize(parse_raw(input))
+  parse_podcast(input).feed
 }

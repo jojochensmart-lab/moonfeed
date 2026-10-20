@@ -8,11 +8,12 @@
 | --- | --- |
 | JSON Feed 1.1 | supported / initial stable |
 | RSS 2.0 | supported / initial stable |
+| RSS Podcast extensions | Apple Podcasts/iTunes core metadata supported |
 | Atom 1.0 | supported |
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
-| Mooncakes 发布 | `joanna/moonfeed@0.1.0` |
+| Mooncakes 发布 | `joanna/moonfeed@0.1.1` |
 
 ## Requirements
 
@@ -25,10 +26,10 @@
 
 ## 安装与运行
 
-从 Mooncakes 安装已发布的 `0.1.0`：
+从 Mooncakes 安装已发布的 `0.1.1`：
 
 ```sh
-moon add joanna/moonfeed@0.1.0
+moon add joanna/moonfeed@0.1.1
 ```
 
 也可以从 GitHub 源码运行和开发：
@@ -67,7 +68,7 @@ Items: 2
 ```
 ## 当前限制
 
-MoonFeed 只解析本地传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 扩展 namespace 与 Podcast 扩展字段尚未纳入统一模型；Atom 不支持 AtomPub。XML reader 是内部实现，只覆盖 Feed parser 需要的 XML 子集，限制见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
+MoonFeed 只解析本地传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展目前支持常用节目与单集元数据；Media RSS、Podcast chapters、transcripts 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。XML reader 是内部实现，只覆盖 Feed parser 需要的 XML 子集，限制见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 
 ## API 示例
 
@@ -131,6 +132,24 @@ test {
 
 RSS 错误包括 `InvalidXml`、`UnsupportedRssVersion`、`MissingChannel`、channel 必填字段错误、`InvalidEnclosure` 和带字段路径的 `InvalidRequiredField`。
 
+## RSS Podcast extensions
+
+`parse(...)` 和 `parse_rss(...)` 会把 RSS 单集的 `itunes:duration` 映射到对应 enclosure 的 `Attachment.duration_in_seconds`。需要读取更多 Podcast 专用字段时，使用 `parse_podcast_rss(...)`，它返回 `{ feed, show, episodes }`，不会改变格式通用的 `Feed` / `FeedItem` 类型。
+
+```moonbit
+let podcast = @moonfeed.parse_podcast_rss(input)
+let show_author = podcast.show.author
+let categories = podcast.show.categories
+let first_episode = podcast.episodes[0]
+let duration = first_episode.duration_in_seconds
+```
+
+当前识别 RSS 根元素或 channel 上声明的标准 `itunes` namespace URI，并保留 `itunes:` 前缀。节目元数据包括 author、owner、subtitle、summary、explicit、image、category/subcategory、type、complete 和 new-feed-url；单集元数据包括 subtitle、summary、image、duration、episode/season number、episode type、explicit 和 block。显式标记接受 `yes` / `true`、`no` / `false` 与 `clean`，并规范化为 Bool。
+
+时长接受 `SS`、`MM:SS` 和 `HH:MM:SS`，其中多段格式的秒字段以及三段格式的分钟字段须在 0–59 范围内。无效时长、布尔值或分类属性会返回带字段路径的 RSS typed error。Podcast API 目前只认标准 `itunes:` 前缀和其官方 namespace URI，不解析任意前缀绑定；嵌套分类支持一层子分类。
+
+`itunes:duration` 示例：`01:02:03` 会规范化为 3723 秒，并同时出现在 `podcast.episodes[0].duration_in_seconds` 与 `podcast.feed.items[0].attachments[0].duration_in_seconds` 中。
+
 ## Atom 1.0
 
 通过 `parse_atom` 解析 Atom 1.0 并规范化到统一模型。支持 feed 的 id/title/subtitle/updated、作者、category 和 self/alternate link，以及 entry 的 id/title/updated/published、作者继承、category、summary、content 和 enclosure link。category 的 term 映射到 categories；日期保留原始字符串，成功解析后另提供 updated_at / published_at。Atom 的 required updated 必须可解析。
@@ -178,12 +197,12 @@ moon test
 moon build
 ```
 
-当前共有 72 个行为测试：15 个 JSON Feed、12 个 RSS、5 个 xmlmini、12 个 Atom、9 个自动检测/统一入口、14 个日期解析/集成测试和 5 个 CLI 测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 80 个行为测试：15 个 JSON Feed、12 个 RSS 核心、7 个 RSS Podcast 扩展、5 个 xmlmini、12 个 Atom、9 个自动检测/统一入口、14 个日期解析/集成测试和 6 个 CLI 测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
 
 ## Roadmap
 
-- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、测试、文档和 CI。
-- 后续：RSS 扩展 namespace、性能和 Mooncakes 发布。
+- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes `joanna/moonfeed@0.1.1` 发布。
+- 后续：Media RSS 等扩展、兼容性与性能改进。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 

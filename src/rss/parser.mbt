@@ -251,8 +251,7 @@ fn parse_item(element : Node, path : String) -> Item raise ParseError {
 
 ///|
 /// Parse RSS 2.0 core fields while preserving metadata not represented by Feed.
-pub fn parse_raw(input : String) -> Channel raise ParseError {
-  let root = document(input)
+fn parse_channel(root : Node) -> Channel raise ParseError {
   if root.name != "rss" || root.attributes.get("xmlns") is Some(_) {
     raise InvalidRequiredField("rss", "expected unnamespaced rss root")
   }
@@ -306,4 +305,10 @@ pub fn parse_raw(input : String) -> Channel raise ParseError {
     docs: optional_text(channel, "docs", "channel"),
     ttl: optional_unsigned(channel, "ttl", "channel"),
   }
+}
+
+///|
+/// Parse RSS 2.0 core fields while preserving metadata not represented by Feed.
+pub fn parse_raw(input : String) -> Channel raise ParseError {
+  parse_channel(document(input))
 }

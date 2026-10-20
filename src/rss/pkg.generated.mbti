@@ -11,6 +11,8 @@ pub fn normalize(Channel) -> @model.Feed raise ParseError
 
 pub fn parse(String) -> @model.Feed raise ParseError
 
+pub fn parse_podcast(String) -> @model.PodcastFeed raise ParseError
+
 pub fn parse_raw(String) -> Channel raise ParseError
 
 // Errors

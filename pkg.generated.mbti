@@ -20,6 +20,8 @@ pub fn parse_datetime(String) -> @datetime.DateTime raise @datetime.DateTimeErro
 
 pub fn parse_json_feed(String) -> @model.Feed raise @jsonfeed.ParseError
 
+pub fn parse_podcast_rss(String) -> @model.PodcastFeed raise @rss.ParseError
+
 pub fn parse_rfc3339(String) -> @datetime.DateTime raise @datetime.DateTimeError
 
 pub fn parse_rss(String) -> @model.Feed raise @rss.ParseError

@@ -70,7 +70,7 @@ The raw public RSS types retain channel metadata such as generator, docs, ttl, i
 - author becomes an `Author` with `name`; repeated categories become `FeedItem.categories`;
 - enclosure maps to one `Attachment` with url, MIME type, and byte length.
 
-RSS `source`, comments, guid permalink metadata, generator, docs, ttl, and image are retained in the raw RSS API. Fields with no unified-model slot are not silently used to invent semantics.
+RSS `source`, comments, guid permalink metadata, generator, docs, ttl, and image are retained in the raw RSS API. Fields with no unified-model slot are not silently used to invent semantics. The RSS parser also recognizes the standard Apple Podcasts/iTunes namespace for enclosure duration in the common model; `parse_podcast_rss` returns a separate `PodcastFeed` wrapper for show and episode metadata.
 
 ## Atom parser and normalization
 
@@ -99,6 +99,6 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 72 behavior tests: 15 JSON Feed, 12 RSS, 5 xmlmini, 12 Atom, 9 detection/unified-entry, 14 datetime parsing/integration, and 5 CLI tests. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
+The current suite has 80 behavior tests: 15 JSON Feed, 12 RSS core, 7 RSS Podcast extensions, 5 xmlmini, 12 Atom, 9 detection/unified-entry, 14 datetime parsing/integration, and 6 CLI tests. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
 
-Atom consumes the same internal XML event reader and normalizes into the shared model. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.
+Atom consumes the same internal XML event reader and normalizes into the shared model. Podcast RSS metadata is exposed through a separate wrapper so existing Feed and FeedItem layouts stay stable. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.

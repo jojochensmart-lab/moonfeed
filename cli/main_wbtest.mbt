@@ -46,3 +46,12 @@ test "unknown and malformed input return errors" {
   assert_true(parse_feed("{not json}") is Err(_))
   assert_true(detect_name("") is Err(_))
 }
+
+///|
+test "podcast enclosure duration appears in normalized JSON" {
+  let feed = @moonfeed.parse_rss(
+    "<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"><channel><title>F</title><link>https://e.test</link><description>D</description><item><guid>episode</guid><title>Episode</title><enclosure url=\"https://e.test/a.mp3\" type=\"audio/mpeg\" length=\"12\"/><itunes:duration>3:04</itunes:duration></item></channel></rss>",
+  )
+  let output = feed_json(feed).stringify()
+  assert_true(output.contains("\"duration_in_seconds\":184"))
+}

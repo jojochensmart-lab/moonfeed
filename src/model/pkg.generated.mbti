@@ -77,6 +77,43 @@ pub fn FeedLink::equal(Self, Self) -> Bool
 pub fn FeedLink::not_equal(Self, Self) -> Bool
 pub fn FeedLink::to_repr(Self) -> @debug.Repr
 
+pub(all) struct PodcastCategory {
+  name : String
+  subcategories : Array[String]
+}
+
+pub(all) struct PodcastEpisodeMetadata {
+  subtitle : String?
+  summary : String?
+  image_url : String?
+  duration_in_seconds : Double?
+  episode_number : UInt64?
+  season_number : UInt64?
+  episode_type : String?
+  explicit : Bool?
+  block : Bool?
+}
+
+pub(all) struct PodcastFeed {
+  feed : Feed
+  show : PodcastShowMetadata
+  episodes : Array[PodcastEpisodeMetadata]
+}
+
+pub(all) struct PodcastShowMetadata {
+  author : String?
+  owner_name : String?
+  owner_email : String?
+  subtitle : String?
+  summary : String?
+  explicit : Bool?
+  image_url : String?
+  categories : Array[PodcastCategory]
+  podcast_type : String?
+  complete : Bool?
+  new_feed_url : String?
+}
+
 // Type aliases
 
 // Traits
