@@ -155,84 +155,8 @@ fn optional_construct(
 }
 
 ///|
-fn token_char(c : Char) -> Bool {
-  ascii_alpha(c) || ascii_digit(c) || "!#$%&'*+-.^_`|~".contains(c.to_string())
-}
-
-///|
 fn media_type(value : String, path : String) -> String raise ParseError {
-  // RFC MIME token / token and semicolon parameters (including quoted values).
-  let a = value.to_array()
-  let mut pos = 0
-  let mut slash = -1
-  while pos < a.length() && a[pos] != ';' && a[pos] != ' ' && a[pos] != '\t' {
-    if a[pos] == '/' {
-      if slash >= 0 {
-        raise InvalidRequiredField(path, "invalid media type")
-      }
-      slash = pos
-    } else if !token_char(a[pos]) {
-      raise InvalidRequiredField(path, "invalid media type token")
-    }
-    pos += 1
-  }
-  if slash <= 0 || slash == pos - 1 {
-    raise InvalidRequiredField(path, "expected MIME type/subtype")
-  }
-  let essence = chars_span(a, 0, pos).to_lower()
-  while pos < a.length() {
-    while pos < a.length() && (a[pos] == ' ' || a[pos] == '\t') {
-      pos += 1
-    }
-    if pos == a.length() {
-      break
-    }
-    if a[pos] != ';' {
-      raise InvalidRequiredField(path, "invalid media type parameter")
-    }
-    pos += 1
-    while pos < a.length() && (a[pos] == ' ' || a[pos] == '\t') {
-      pos += 1
-    }
-    let start = pos
-    while pos < a.length() && token_char(a[pos]) {
-      pos += 1
-    }
-    if pos == start || pos >= a.length() || a[pos] != '=' {
-      raise InvalidRequiredField(path, "invalid media type parameter name")
-    }
-    pos += 1
-    if pos < a.length() && a[pos] == '"' {
-      pos += 1
-      let mut closed = false
-      while pos < a.length() {
-        if a[pos] == '"' {
-          pos += 1
-          closed = true
-          break
-        }
-        if a[pos] == '\\' {
-          pos += 1
-        }
-        if pos >= a.length() || a[pos].to_int() < 0x20 {
-          raise InvalidRequiredField(path, "invalid quoted parameter")
-        }
-        pos += 1
-      }
-      if !closed {
-        raise InvalidRequiredField(path, "unclosed media type parameter")
-      }
-    } else {
-      let start = pos
-      while pos < a.length() && token_char(a[pos]) {
-        pos += 1
-      }
-      if start == pos {
-        raise InvalidRequiredField(path, "empty media type parameter")
-      }
-    }
-  }
-  essence
+  parse_media_type(value, path).essence
 }
 
 ///|
@@ -298,11 +222,15 @@ fn strict_links(node : Node, path : String) -> Array[AtomLink] raise ParseError 
       let _ = media_type(value, p + ".type")
     }
     let hreflang = raw_attr(n, "hreflang")
+    if hreflang is Some(value) {
+      validate_language(value, p + ".hreflang", false)
+    }
     for previous in result {
       if is_alternate(rel) &&
         is_alternate(previous.rel) &&
-        previous.media_type == type_ &&
-        previous.hreflang == hreflang {
+        same_media_type(previous.media_type, type_, p + ".type") &&
+        previous.hreflang.map(s => s.to_lower()) ==
+        hreflang.map(s => s.to_lower()) {
         raise InvalidRequiredField(
           p, "duplicate alternate type/hreflang combination",
         )
@@ -679,10 +607,14 @@ fn strict_entry(
     )
   }
   if content is Some(c) {
-    let kind = c.media_type.unwrap_or("text").split(";").to_array()[0]
-      .trim(chars=" \t")
-      .to_owned()
-      .to_lower()
+    let raw_kind = c.media_type.unwrap_or("text")
+    let kind = if raw_kind == "text" ||
+      raw_kind == "html" ||
+      raw_kind == "xhtml" {
+      raw_kind
+    } else {
+      media_type(raw_kind, path + ".content.type")
+    }
     if (c.src is Some(_) || binary_media(kind)) && summary is None {
       raise InvalidRequiredField(
         path + ".summary",
@@ -712,7 +644,8 @@ fn strict_document(
   if base is Some(b) {
     let _ = absolute_iri(b, "document_uri")
   }
-  let root = document_tree(input, base)
+  let root = document_tree(input, base, strict_declaration=true)
+  validate_document_languages(root)
   if named(root, "entry") {
     return EntryDocument(strict_entry(root, "entry", [], None))
   }

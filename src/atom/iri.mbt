@@ -71,9 +71,7 @@ fn iri_authority(value : String) -> Unit raise ParseError {
       raise InvalidRequiredField("iri", "unclosed IP literal")
     }
     let literal = chars_span(a, start + 1, end)
-    if !literal.contains(":") &&
-      !literal.has_prefix("v") &&
-      !literal.has_prefix("V") {
+    if !ip_literal(literal) {
       raise InvalidRequiredField("iri", "invalid IP literal")
     }
     if end + 1 < a.length() {
@@ -218,6 +216,26 @@ fn parse_iri_parts(
     iri_authority(auth)
   }
   let path = chars_span(a, start, query_at)
+  if !legacy_base {
+    // Private-use code points are allowed only in iquery, not path/fragment/host.
+    for
+      (component, private_allowed) in [
+        (Some(path), false),
+        (query, true),
+        (fragment, false),
+        (authority, false),
+      ] {
+      if component is Some(value) {
+        for c in value.to_array() {
+          if c.to_int() >= 0x80 && !iri_unicode(c, private_allowed) {
+            raise InvalidRequiredField(
+              "iri", "character outside RFC 3987 component range",
+            )
+          }
+        }
+      }
+    }
+  }
   for component in [Some(path), query, fragment] {
     if component is Some(s) && (s.contains("[") || s.contains("]")) {
       raise InvalidRequiredField(

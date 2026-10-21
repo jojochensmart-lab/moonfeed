@@ -34,6 +34,7 @@ pub struct Reader {
   chars : Array[Char]
   mut pos : Int
   tags : Array[String]
+  strict_declaration : Bool
 }
 
 ///|
@@ -75,8 +76,11 @@ pub struct NamespaceReader {
 }
 
 ///|
-pub fn NamespaceReader::from_string(input : String) -> NamespaceReader {
-  { inner: Reader::from_string(input), scopes: [], }
+pub fn NamespaceReader::from_string(
+  input : String,
+  strict_declaration? : Bool = false,
+) -> NamespaceReader {
+  { inner: Reader::from_string(input, strict_declaration~), scopes: [], }
 }
 
 ///|
@@ -223,6 +227,9 @@ fn build_namespace_element(
   let scope = clone_scope(parent_scope)
   scope.set("xml", "http://www.w3.org/XML/1998/namespace")
   for (key, value) in element.attributes.to_array() {
+    if key == "xmlns" || key.has_prefix("xmlns:") {
+      namespace_reference(value)
+    }
     if key == "xmlns" {
       if value == "http://www.w3.org/XML/1998/namespace" ||
         value == "http://www.w3.org/2000/xmlns/" {
@@ -301,8 +308,26 @@ pub fn NamespaceReader::read_event(
 }
 
 ///|
-pub fn Reader::from_string(input : String) -> Reader {
-  { chars: input.to_array(), pos: 0, tags: [], }
+pub fn Reader::from_string(
+  input : String,
+  strict_declaration? : Bool = false,
+) -> Reader {
+  // XML 1.0 section 2.11: physical line endings precede entity expansion.
+  let chars : Array[Char] = []
+  let raw = input.to_array()
+  let mut i = 0
+  while i < raw.length() {
+    if raw[i] == '\r' {
+      chars.push('\n')
+      if i + 1 < raw.length() && raw[i + 1] == '\n' {
+        i += 1
+      }
+    } else {
+      chars.push(raw[i])
+    }
+    i += 1
+  }
+  { chars, pos: 0, tags: [], strict_declaration, }
 }
 
 ///|
@@ -379,7 +404,13 @@ fn Reader::name(self : Reader) -> String raise XmlError {
   for i = start; i < self.pos; i = i + 1 {
     b.write_char(self.chars[i])
   }
-  b.to_string()
+  let value = b.to_string()
+  let chars = value.to_array()
+  if !(ncname_start(chars[0]) || chars[0] == ':') ||
+    !chars.all(c => ncname_char(c) || c == ':') {
+    raise Malformed("invalid XML name")
+  }
+  value
 }
 
 ///|
@@ -489,11 +520,90 @@ fn Reader::comment(self : Reader) -> Unit raise XmlError {
 
 ///|
 fn Reader::declaration(self : Reader) -> Unit raise XmlError {
+  let start = self.pos
   self.pos += 2
-  if self.name() != "xml" {
-    raise Malformed("processing instructions unsupported")
+  let target = self.name()
+  let chars = target.to_array()
+  if chars.is_empty() ||
+    !(ncname_start(chars[0]) || chars[0] == ':') ||
+    !chars.all(c => ncname_char(c) || c == ':') {
+    raise Malformed("invalid processing instruction target")
   }
-  let _ = self.until("?>")
+  if target.to_lower() != "xml" {
+    if !self.starts("?>") && !(self.peek() is Some(' ' | '\t' | '\n')) {
+      raise Malformed("processing instruction requires whitespace")
+    }
+    let _ = self.until("?>")
+    return
+  }
+  let mut initial = start == 0
+  if !self.strict_declaration {
+    initial = true
+    for i = 0; i < start; i = i + 1 {
+      if self.chars[i] != ' ' && self.chars[i] != '\t' && self.chars[i] != '\n' {
+        initial = false
+      }
+    }
+  }
+  if target != "xml" || !initial {
+    raise Malformed("XML declaration must be first and use lowercase xml")
+  }
+  let fields : Array[(String, String)] = []
+  while !self.starts("?>") {
+    let before = self.pos
+    self.space()
+    if self.starts("?>") {
+      break
+    }
+    if self.pos == before {
+      raise Malformed("XML declaration fields require whitespace")
+    }
+    let key = self.name()
+    self.space()
+    self.expect('=')
+    self.space()
+    let quote = self.take()
+    if quote != '\'' && quote != '"' {
+      raise Malformed("XML declaration value must be quoted")
+    }
+    let value = StringBuilder()
+    while self.peek() is Some(c) && c != quote {
+      value.write_char(self.take())
+    }
+    self.expect(quote)
+    fields.push((key, value.to_string()))
+  }
+  self.pos += 2
+  if fields.is_empty() || fields[0] != ("version", "1.0") {
+    raise Malformed("XML 1.0 version declaration required")
+  }
+  let mut encoding_seen = false
+  let mut standalone_seen = false
+  for i = 1; i < fields.length(); i = i + 1 {
+    let (key, value) = fields[i]
+    if key == "encoding" && !encoding_seen && !standalone_seen {
+      let a = value.to_array()
+      if a.is_empty() ||
+        !((a[0] >= 'A' && a[0] <= 'Z') || (a[0] >= 'a' && a[0] <= 'z')) ||
+        !a.all(c => {
+          (c >= 'A' && c <= 'Z') ||
+          (c >= 'a' && c <= 'z') ||
+          (c >= '0' && c <= '9') ||
+          c == '.' ||
+          c == '_' ||
+          c == '-'
+        }) {
+        raise Malformed("invalid encoding name")
+      }
+      encoding_seen = true
+    } else if key == "standalone" &&
+      !standalone_seen &&
+      (value == "yes" || value == "no") {
+      standalone_seen = true
+    } else {
+      raise Malformed("invalid XML declaration field or order")
+    }
+  }
 }
 
 ///|
@@ -536,7 +646,15 @@ fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
       if c == '<' {
         raise Malformed("invalid attribute")
       }
-      b.write_char(self.take())
+      let ch = self.take()
+      // Literal whitespace normalizes; character references remain unchanged.
+      b.write_char(
+        if ch == '\t' || ch == '\n' || ch == '\r' {
+          ' '
+        } else {
+          ch
+        },
+      )
     }
     self.expect(q)
     if m.get(k) is Some(_) {
@@ -581,18 +699,18 @@ fn Reader::finish(self : Reader) -> XmlEvent raise XmlError {
 
 ///|
 pub fn Reader::read_event(self : Reader) -> XmlEvent raise XmlError {
-  while self.starts("<!--") {
-    self.comment()
+  while self.starts("<!--") || self.starts("<?") {
+    if self.starts("<!--") {
+      self.comment()
+    } else {
+      self.declaration()
+    }
   }
   if self.pos == self.chars.length() {
     if !self.tags.is_empty() {
       raise Malformed("unclosed element")
     }
     return Eof
-  }
-  if self.starts("<?") {
-    self.declaration()
-    return self.read_event()
   }
   if self.starts("<![CDATA[") {
     self.pos += 9

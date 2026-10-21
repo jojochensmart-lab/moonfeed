@@ -84,6 +84,7 @@ fn mail_word(
 /// Obsolete control-character/FWS productions remain outside the validated subset.
 fn validate_email(value : String, path : String) -> Unit raise ParseError {
   let a = value.to_array()
+  header_characters(a, path)
   for c in a {
     if c.to_int() > 0x7F ||
       (c.to_int() < 0x20 && c != '\t' && c != '\r' && c != '\n') {

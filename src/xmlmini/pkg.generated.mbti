@@ -37,15 +37,16 @@ pub struct NamespaceReader {
   inner : Reader
   scopes : Array[Map[String, String]]
 }
-pub fn NamespaceReader::from_string(String) -> Self
+pub fn NamespaceReader::from_string(String, strict_declaration? : Bool) -> Self
 pub fn NamespaceReader::read_event(Self) -> NamespaceEvent raise XmlError
 
 pub struct Reader {
   chars : Array[Char]
   mut pos : Int
   tags : Array[String]
+  strict_declaration : Bool
 }
-pub fn Reader::from_string(String) -> Self
+pub fn Reader::from_string(String, strict_declaration? : Bool) -> Self
 pub fn Reader::read_event(Self) -> XmlEvent raise XmlError
 
 pub struct XmlElement {
