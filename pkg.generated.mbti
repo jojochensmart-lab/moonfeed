@@ -18,6 +18,10 @@ pub fn parse(String) -> @model.Feed raise ParseError
 
 pub fn parse_atom(String) -> @model.Feed raise @atom.ParseError
 
+pub fn parse_atom_document(String) -> @atom.AtomDocument raise @atom.ParseError
+
+pub fn parse_atom_document_with_base(String, String) -> @atom.AtomDocument raise @atom.ParseError
+
 pub fn parse_datetime(String) -> @datetime.DateTime raise @datetime.DateTimeError
 
 pub fn parse_json_feed(String) -> @model.Feed raise @jsonfeed.ParseError
@@ -44,5 +48,34 @@ pub fn ParseError::to_repr(Self) -> @debug.Repr
 // Types and methods
 
 // Type aliases
+pub using @atom {type AtomCategory}
+
+pub using @atom {type AtomContent}
+
+pub using @atom {type AtomDate}
+
+pub using @atom {type AtomDocument}
+
+pub using @atom {type AtomEntry}
+
+pub using @atom {type AtomFeed}
+
+pub using @atom {type AtomGenerator}
+
+pub using @atom {type AtomLink}
+
+pub using @atom {type AtomMetadata}
+
+pub using @atom {type AtomPerson}
+
+pub using @atom {type AtomText}
+
+pub using @atom {type IriReference}
+
+pub using @atom {type Markup}
+
+pub using @atom {type MarkupAttribute}
+
+pub using @atom {type MarkupContent}
 
 // Traits

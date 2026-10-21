@@ -32,6 +32,7 @@ priv struct Node {
   name : @xmlmini.ExpandedName
   attributes : Array[@xmlmini.NamespaceAttribute]
   language : String?
+  base_uri : String?
   children : Array[Node]
   content : Array[NodeContent]
   text : StringBuilder
@@ -41,7 +42,8 @@ priv struct Node {
 fn make_node(
   element : @xmlmini.NamespaceElement,
   inherited_language : String?,
-) -> Node {
+  inherited_base : String?,
+) -> Node raise ParseError {
   let language_attribute = namespace_attribute(
     element, "http://www.w3.org/XML/1998/namespace", "lang",
   )
@@ -50,10 +52,22 @@ fn make_node(
     Some(value) => Some(value)
     None => inherited_language
   }
+  let base_attribute = namespace_attribute(
+    element, "http://www.w3.org/XML/1998/namespace", "base",
+  )
+  let base_uri = match base_attribute {
+    Some(reference) =>
+      Some(resolve_xml_base(inherited_base, reference).resolved) catch {
+        _ =>
+          raise InvalidRequiredField("xml:base", "invalid XML Base reference")
+      }
+    None => inherited_base
+  }
   {
     name: element.name,
     attributes: element.attributes,
     language,
+    base_uri,
     children: [],
     content: [],
     text: StringBuilder(),
@@ -73,7 +87,20 @@ fn atom_children(parent : Node, name : String) -> Array[Node] {
 
 ///|
 fn doc(input : String) -> Node raise ParseError {
-  let reader = @xmlmini.NamespaceReader::from_string(input)
+  document_tree(input, None)
+}
+
+///|
+fn document_tree(
+  input : String,
+  document_uri : String?,
+) -> Node raise ParseError {
+  let normalized = if input.has_prefix("\u{FEFF}") {
+    input[1:].to_owned()
+  } else {
+    input
+  }
+  let reader = @xmlmini.NamespaceReader::from_string(normalized)
   let stack : Array[Node] = []
   let roots : Array[Node] = []
   while true {
@@ -90,7 +117,12 @@ fn doc(input : String) -> Node raise ParseError {
         } else {
           stack[stack.length() - 1].language
         }
-        stack.push(make_node(element, inherited_language))
+        let inherited_base = if stack.is_empty() {
+          document_uri
+        } else {
+          stack[stack.length() - 1].base_uri
+        }
+        stack.push(make_node(element, inherited_language, inherited_base))
       }
       @xmlmini.NamespaceEmpty(element) => {
         let inherited_language = if stack.is_empty() {
@@ -98,7 +130,12 @@ fn doc(input : String) -> Node raise ParseError {
         } else {
           stack[stack.length() - 1].language
         }
-        let child = make_node(element, inherited_language)
+        let inherited_base = if stack.is_empty() {
+          document_uri
+        } else {
+          stack[stack.length() - 1].base_uri
+        }
+        let child = make_node(element, inherited_language, inherited_base)
         if stack.is_empty() {
           roots.push(child)
         } else {
@@ -121,6 +158,9 @@ fn doc(input : String) -> Node raise ParseError {
         if !stack.is_empty() {
           stack[stack.length() - 1].text.write_string(value)
           stack[stack.length() - 1].content.push(PartText(value))
+        } else if !value.trim(chars=" \t\r\n").is_empty() ||
+          event is @xmlmini.NamespaceCData(_) {
+          raise InvalidXml("character data outside document element")
         }
       @xmlmini.NamespaceEof => break
     }
@@ -280,7 +320,11 @@ fn link_values(
   let attachments : Array[@model.Attachment] = []
   for index, link in atom_children(parent, "link") {
     let link_path = path + ".link[\{index}]"
-    let href = attr(link, "href", link_path)
+    let href = reference(
+        link,
+        attr(link, "href", link_path),
+        link_path + ".href",
+      ).resolved
     let rel = optional_attr(link, "rel").unwrap_or("alternate")
     match rel {
       "alternate" => if alternate is None { alternate = Some(href) }

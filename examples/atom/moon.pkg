@@ -1,0 +1,5 @@
+import {
+  "joanna/moonfeed",
+}
+
+pkgtype(kind: "executable")

@@ -20,6 +20,16 @@ pub(all) suberror XmlError {
 }
 
 ///|
+fn xml_character(n : Int) -> Bool {
+  n == 0x9 ||
+  n == 0xA ||
+  n == 0xD ||
+  (n >= 0x20 && n <= 0xD7FF) ||
+  (n >= 0xE000 && n <= 0xFFFD) ||
+  (n >= 0x10000 && n <= 0x10FFFF)
+}
+
+///|
 pub struct Reader {
   chars : Array[Char]
   mut pos : Int
@@ -140,8 +150,17 @@ fn split_qname(name : String) -> (String?, String) raise XmlError {
     }
     (None, name)
   } else {
-    let prefix = name[:colon].to_owned()
-    let local_part = name[colon + 1:].to_owned()
+    let prefix_builder = StringBuilder()
+    let local_builder = StringBuilder()
+    for i, ch in chars {
+      if i < colon {
+        prefix_builder.write_char(ch)
+      } else if i > colon {
+        local_builder.write_char(ch)
+      }
+    }
+    let prefix = prefix_builder.to_string()
+    let local_part = local_builder.to_string()
     if !valid_ncname(prefix) || !valid_ncname(local_part) {
       raise namespace_error("invalid qualified name")
     }
@@ -315,6 +334,9 @@ fn Reader::starts(self : Reader, s : String) -> Bool {
 fn Reader::take(self : Reader) -> Char raise XmlError {
   match self.peek() {
     Some(c) => {
+      if !xml_character(c.to_int()) {
+        raise Malformed("invalid XML 1.0 character")
+      }
       self.pos += 1
       c
     }
@@ -399,6 +421,9 @@ fn numeric(s : String) -> Char raise XmlError {
       raise Malformed("numeric entity out of range")
     }
   }
+  if !xml_character(n) {
+    raise Malformed("numeric entity is not an XML 1.0 character")
+  }
   match n.to_char() {
     Some(c) => c
     None => raise Malformed("invalid Unicode scalar")
@@ -456,7 +481,10 @@ fn Reader::until(self : Reader, end : String) -> String raise XmlError {
 ///|
 fn Reader::comment(self : Reader) -> Unit raise XmlError {
   self.pos += 4
-  let _ = self.until("-->")
+  let value = self.until("-->")
+  if value.contains("--") || value.has_suffix("-") {
+    raise Malformed("invalid XML comment")
+  }
 }
 
 ///|
@@ -474,18 +502,26 @@ fn Reader::text(self : Reader) -> XmlEvent raise XmlError {
   while self.peek() is Some(c) && c != '<' {
     b.write_char(self.take())
   }
-  Text(decode(b.to_string()))
+  let value = b.to_string()
+  if value.contains("]]>") {
+    raise Malformed("CDATA close delimiter in ordinary text")
+  }
+  Text(decode(value))
 }
 
 ///|
 fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
   let m : Map[String, String] = Map([])
   while true {
+    let before_space = self.pos
     self.space()
     match self.peek() {
       Some('>' | '/') => return m
       None => raise Malformed("unterminated tag")
       _ => ()
+    }
+    if before_space == self.pos {
+      raise Malformed("attributes must be separated by whitespace")
     }
     let k = self.name()
     self.space()
@@ -533,7 +569,6 @@ fn Reader::start(self : Reader) -> XmlEvent raise XmlError {
 fn Reader::finish(self : Reader) -> XmlEvent raise XmlError {
   self.expect('<')
   self.expect('/')
-  self.space()
   let n = self.name()
   self.space()
   self.expect('>')

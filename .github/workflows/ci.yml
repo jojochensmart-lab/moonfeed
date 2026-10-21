@@ -30,7 +30,9 @@ jobs:
       - name: Build
         run: moon build
       - name: Run example
-        run: moon run examples/basic
+        run: |
+          moon run examples/basic
+          moon run examples/atom
       - name: CLI smoke tests
         run: |
           moon run cli --target js -- detect fixtures/rss/full.xml
