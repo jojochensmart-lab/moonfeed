@@ -2,7 +2,7 @@
 
 ## Boundaries
 
-- Root package `joanna/moonfeed`: public `parse` auto-detection entry point and explicit `parse_json_feed`, `parse_rss`, and `parse_atom` entry points.
+- Root package `joanna/moonfeed`: existing normalization APIs plus `parse_atom_document` / `parse_atom_document_with_base` and re-exported Atom document types.
 - `src/detect`: JSON/RSS/Atom classification using the XML reader's expanded root name.
 - `src/model`: shared `Feed`, `FeedItem`, `Author`, `Attachment`, and `FeedLink` types.
 - `src/jsonfeed`: JSON decoding, supported-field validation, and normalization.
@@ -12,7 +12,7 @@
 - `cli`: Node.js-hosted executable frontend for detect, inspect, and normalized JSON output; it delegates parsing to the public unified entry point.
 - `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
-RSS and Atom XML parsing use MoonFeed internal package `src/xmlmini`; it is not re-exported from the root library API and is not supported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
+RSS and Atom XML parsing use MoonFeed internal package `src/xmlmini`; it is not re-exported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum and local verification toolchain are MoonBit v0.10.14. CI uses the official latest channel and records the actual installed versions.
 
 ## CLI data flow
 
@@ -24,6 +24,8 @@ The CLI contains no format parser. It reads bytes/text through Node.js host APIs
 
 `RSS/XML String -> src/xmlmini events -> RSS Node view -> RSS Channel/Item -> unified Feed`
 `Atom/XML String -> src/xmlmini events -> Atom node view -> Atom normalization -> unified Feed`
+
+`Atom/XML String -> namespace/base/language-scoped node view -> document validation -> AtomDocument(FeedDocument | EntryDocument)`
 
 `JSON String -> core/json AST -> validated fields -> unified Feed`
 
@@ -72,7 +74,21 @@ The raw public RSS types retain channel metadata such as generator, docs, ttl, i
 
 RSS `source`, comments, guid permalink metadata, generator, docs, ttl, and image are retained in the raw RSS API. Fields with no unified-model slot are not silently used to invent semantics. The RSS parser also recognizes the standard Apple Podcasts/iTunes namespace for enclosure duration in the common model; `parse_podcast_rss` returns a separate `PodcastFeed` wrapper for show and episode metadata.
 
-## Atom parser and normalization
+## Atom document API and semantic retention
+
+The new document API returns distinct Feed and standalone Entry variants. It validates the implemented RFC 4287 requirements without constructing a synthetic Feed for an Entry. The root module exports AtomDocument, AtomFeed, AtomEntry, AtomMetadata, AtomPerson, AtomLink, AtomCategory, AtomText, AtomContent, AtomDate, IriReference and expanded markup types.
+
+Each Atom node carries inherited xml:lang and xml:base. Base resolution parses scheme/authority/path/query/fragment and implements RFC 3986 path merging and dot-segment removal. Empty and fragment XML bases are resolved normally; XML Base LEIRI spaces remain unescaped in returned bases. Reference values carry raw/resolved/is_absolute; a caller may supply a retrieval URI. IDs are absolute and preserved character-for-character rather than base-resolved or normalized.
+
+Feed/entry singletons, required values, structural placement, author conditions, alternate-link tuples, content/link presence and mandatory summaries are checked. Source uses optional feed metadata rules. Effective authors follow entry, then source, then feed; rights inherit from the containing feed. Source, contributors/email, all links/categories, generator, rights, icon/logo and expanded-name extension trees remain accessible. Metadata/source IDs are retained.
+
+Text and HTML reject child elements. XHTML requires a single div in the XHTML namespace and preserves mixed content; the wrapper is excluded from AtomContent.markup while retained in raw. XML media types retain expanded markup, text media types retain text, binary types validate/decode Base64, and external src content must be empty. Missing external type remains unknown. Link length_raw preserves arbitrary-size decimal integers even when UInt64 conversion is unavailable.
+
+AtomDate applies uppercase T/Z and RFC 3339 calendar rules, preserves fractional digits and -00:00, supports Gregorian year 0000 and recorded positive leap seconds. Leap transitions use public-domain IANA/IERS data through 2017-01-01; future announcements require maintenance. POSIX seconds cannot distinguish a leap second from the next second, so raw/leap_second/fractional_digits remain explicit.
+
+The retained XML tree is semantic, not a byte-preserving serializer: comments, processing instructions and original namespace prefixes are not retained. Full XML 1.0 declaration/normalization/DTD/PI behavior, exhaustive IRI/namespace-URI/LEIRI grammar, language tags and some historical email/MIME productions remain incomplete. The exact scope is audited in [ATOM_RFC4287_COMPLIANCE.md](ATOM_RFC4287_COMPLIANCE.md).
+
+## Legacy Atom normalization and migration
 
 src/atom consumes the shared src/xmlmini event stream. It requires feed id, title, and updated, and requires entry id, title, and updated. Feed id is validated but the shared model has no feed-id field. Entry ids are copied verbatim and are never synthesized. Original date strings remain available; successfully parsed dates also carry normalized UTC instants. Invalid required updated dates return typed errors.
 
@@ -82,7 +98,7 @@ Atom person names and URIs map to Author.name and Author.url. Multiple authors a
 
 Text constructs default to type=text: text maps to content_text, html maps to content_html, and xhtml is reduced to readable descendant text and mapped to content_html. Other media types are not mapped to content fields yet. XML event order is retained while extracting nested XHTML so mixed text stays in order. Feed/entry rights, generator, icon, logo, entry source, feed id, and unsupported person/link details have no slots in the shared model and are discarded during normalization.
 
-Every Atom field lookup compares the expanded name against the Atom namespace URI and the required local name. Default namespace and arbitrary prefix representations therefore have the same result, while foreign extension elements with colliding local names are ignored. The reader resolves namespace bindings but remains a feed-focused XML subset reader, not a general XML namespace or validation library. The current Atom implementation is not fully RFC 4287 conformant: it accepts Feed Documents only, drops unsupported metadata and extensions, does not resolve `xml:base` relative IRIs, and validates only the common subset of constructs and cardinality rules. See [ATOM_RFC4287_COMPLIANCE.md](ATOM_RFC4287_COMPLIANCE.md) for the audited status and follow-up work.
+Every field lookup compares the Atom namespace URI and local name. The legacy normalization APIs retain their Feed return type and historical permissive common-field behavior, including legacy inputs lacking constraints now checked by the document API. They still accept Feed Documents only and discard values without unified-model fields. Their links now use the shared base resolver. Callers requiring standalone Entry semantics, validation or retained Atom metadata should migrate to the document API; a full-conformance claim does not apply to either API until the audited gaps are closed.
 ## Dates and errors
 
 Parser output follows the path Format parser -> raw date -> src/datetime -> normalized UTC representation -> unified Feed model. The existing String? date fields remain available as extracted by their format parsers. Feed.updated_at, FeedItem.published_at, and FeedItem.updated_at hold an optional DateTime { raw, unix_seconds }; Unix seconds use Int64, giving a comparable and serializable UTC instant. The MoonBit v0.10.14 core library has no calendar parser suitable for these feed formats, so src/datetime implements only the constrained feed-date subset.
@@ -99,6 +115,6 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 88 behavior tests. It includes Atom namespace equivalence, expansion, scope rebinding/reset, reserved bindings, duplicate expanded attributes, and foreign-element collision cases, alongside the existing JSON Feed/RSS/date/CLI regression suite. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
+The current suite has 117 behavior tests: the original 88 are unchanged and 29 document/IRI/XML/metadata cases are added. CI runs both examples/basic and examples/atom in addition to check/test/build and existing CLI smoke tests. It installs the official latest channel and logs versions; local validation uses v0.10.14, while actual CI versions must be read from each run.
 
 Atom consumes the same internal XML event reader and normalizes into the shared model. Podcast RSS metadata is exposed through a separate wrapper so existing Feed and FeedItem layouts stay stable. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.

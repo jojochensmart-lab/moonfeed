@@ -9,7 +9,7 @@
 | JSON Feed 1.1 | supported / initial stable |
 | RSS 2.0 | supported / initial stable |
 | RSS Podcast extensions | Apple Podcasts/iTunes core metadata supported |
-| Atom 1.0 | supported |
+| Atom 1.0 | Feed/Entry 文档入口与统一模型入口；完整兼容状态见下方矩阵 |
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
@@ -31,6 +31,8 @@
 ```sh
 moon add joanna/moonfeed@0.1.2
 ```
+
+本次新增的 `parse_atom_document` 等 Atom 文档 API 目前仅在 Git main，尚未发布到 Mooncakes；已发布 `0.1.2` 不包含这些新增 API。
 
 也可以从 GitHub 源码运行和开发：
 
@@ -68,7 +70,7 @@ Items: 2
 ```
 ## 当前限制
 
-MoonFeed 只解析本地传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展目前支持常用节目与单集元数据；Media RSS、Podcast chapters、transcripts 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。当前 Atom parser 面向 Feed Document 常用字段，不代表完整 RFC 4287 兼容；Entry Document、`xml:base` 相对 IRI、完整 construct 验证和扩展元数据保留尚未实现。XML reader 是内部实现，只覆盖 Feed parser 需要的 XML 子集，限制见 [ARCHITECTURE](docs/ARCHITECTURE.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Git main 的 Atom 文档 API 已支持独立 Entry、XML Base 和专用元数据；完整 XML 1.0、IRI、语言标签及部分词法规则仍有缺口，因此不宣称完整 RFC 4287 兼容。详见 [ARCHITECTURE](docs/ARCHITECTURE.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 ## API 示例
 
@@ -152,6 +154,39 @@ let duration = first_episode.duration_in_seconds
 
 ## Atom 1.0
 
+### Atom 文档与标准校验入口（Git main）
+
+使用 `parse_atom_document(input)` 解析 Feed Document 或独立 Entry Document。结果是 `AtomDocument::FeedDocument` 或 `AtomDocument::EntryDocument`，两种根节点保持各自语义。需要提供检索地址时使用 `parse_atom_document_with_base(input, document_uri)`。相关类型已从根模块导出，只需 import `joanna/moonfeed`。
+
+```moonbit
+test {
+  let document = @moonfeed.parse_atom_document(
+    #|<entry xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.org/news/"><id>urn:entry:demo</id><title>MoonFeed</title><updated>2026-10-20T12:00:00Z</updated><author><name>MoonBit</name></author><link href="../article"/><content>Hello</content></entry>
+  )
+  match document {
+    @moonfeed.AtomDocument::EntryDocument(entry) => {
+      assert_eq(entry.metadata.id, Some("urn:entry:demo"))
+      assert_eq(entry.metadata.links[0].href.raw, "../article")
+      assert_eq(entry.metadata.links[0].href.resolved, "https://example.org/article")
+      assert_eq(entry.content.unwrap().value, "Hello")
+    }
+    _ => fail("expected Entry Document")
+  }
+}
+```
+
+文档 API 校验已实现的 RFC 4287 必需字段、单值数量、作者存在与继承、结构、链接和正文约束。它保留 ID、全部 link/category 属性、source、author/contributor、email、rights、generator、icon/logo；text/html/xhtml/XML/其他 MIME 内容、外部 `src` 和 Base64 解码均有专用结构。`metadata.raw` 等展开名称树保留扩展元素、属性和顺序，不承诺原始前缀或字节级 XML 往返。
+
+`IriReference` 区分 `raw`、`resolved` 和 `is_absolute`。基地址按 XML Base 作用域和 RFC 3986 算法计算，支持查询、片段、空值与 LEIRI；未提供绝对基地址时，相对结果会明确标为非绝对。ID 保留原始字符身份，不参与基地址解析。未提供类型的外部 content 保留 `media_type = None`。
+
+`AtomDate` 保留原始字符串、完整小数位、`-00:00` 与闰秒标记，并提供 POSIX Unix 秒；已公告正闰秒和年 0000 有测试。闰秒在 POSIX 秒上与随后一秒重合，精确身份需同时查看标记与原始值。闰秒表需随未来 IERS 公告维护。
+
+运行 `moon run examples/atom` 可验证默认 namespace 与任意前缀的独立 Entry 得到等价结果。完整支持边界、已知缺口见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+
+### 现有统一模型入口与迁移
+
+`parse_atom` 和统一 `parse` 保持原来的 `Feed` 返回类型与历史常用字段规范化行为，只接受 Feed 根节点，不能用来返回独立 Entry。它们保留原有宽松输入行为，不是完整 RFC 校验器；要求本阶段校验或完整 Atom 元数据的调用方应迁移到上述文档入口。新入口会拒绝旧入口可能接受的相对 ID、缺少作者/内容链接、无效可选日期等输入，错误仍为带字段路径的 Atom typed error。
+
 通过 `parse_atom` 解析 Atom 1.0 并规范化到统一模型。支持 feed 的 id/title/subtitle/updated、作者、category 和 self/alternate link，以及 entry 的 id/title/updated/published、作者继承、category、summary、content 和 enclosure link。category 的 term 映射到 categories；日期保留原始字符串，成功解析后另提供 updated_at / published_at。Atom 的 required updated 必须可解析。
 
 - feed rel=self 映射到 Feed.feed_url；rel=alternate 或未指定 rel 映射到 Feed.home_page_url。
@@ -161,7 +196,7 @@ let duration = first_episode.duration_in_seconds
 - Feed id、rights、generator、icon/logo、作者 email、contributors、entry rights/source，以及未知 rel 链接目前没有统一模型字段，因此解析后不保留。扩展节点被忽略。
 - Atom 标准元素必须属于 `http://www.w3.org/2005/Atom`，并按展开名称（namespace URI + local name）匹配。默认命名空间和任意合法前缀等价；同 local name 的其他 namespace 扩展节点不会被当作 Atom 字段。
 - 内部 XML reader 支持默认/显式前缀绑定、作用域继承与重绑定、默认 namespace 清空、XML 保留前缀规则、无前缀属性不继承默认 namespace，以及重复展开属性检测。它仍是 Feed 专用子集 reader，不是完整 XML 处理器。
-- Atom 当前支持范围不等于完整 RFC 4287 兼容。Feed Document 常用字段可规范化，但 Entry Document、`xml:base`、完整 person/link/category/construct 约束、Atom source 和扩展元数据保留尚未实现；逐项状态见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+- 上述统一模型映射会丢弃模型中没有对应槽位的信息；需要 source、完整链接/分类或扩展数据时使用新的文档 API。它已经补齐独立 Entry、XML Base 和元数据访问，但仍不能宣称完整 RFC 4287 兼容。
 
 最小调用：@moonfeed.parse_atom("<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:news</id><title>News</title><updated>2026-10-01T12:00:00Z</updated><entry><id>post-1</id><title>First post</title><updated>2026-10-01T12:00:00Z</updated><summary>Hello</summary></entry></feed>")，返回统一 Feed，条目 id 为 post-1。
 
@@ -174,6 +209,8 @@ test {
 }
 ```
 ## Date normalization
+
+本节描述现有统一模型和通用日期 API 的行为。新的 Atom 文档 API 使用上文的 `AtomDate`，提供更严格的 Atom 日期检查和额外信息。
 
 The existing published / updated fields retain the source date values produced by each format parser. When valid, adjacent published_at / updated_at fields contain a DateTime with the original raw string and normalized unix_seconds (Int64). Compare instants with DateTime::compare; serialize the integer value as needed.
 
@@ -199,14 +236,14 @@ moon test
 moon build
 ```
 
-当前共有 88 个行为测试。除 RSS、JSON Feed、日期与 CLI 回归外，测试还覆盖默认 namespace、任意前缀、前缀重绑定、默认 namespace 清空、未声明前缀、保留绑定、重复展开属性和 Atom 扩展同名元素隔离。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 117 个行为测试：原有 88 项保持不变，新增 29 项覆盖 Atom 文档、XML Base、结构/作者/内容约束、元数据、日期边界与 XML 错误，包括 RFC 4287 正式示例和 RFC 3986 相对引用向量。RSS、JSON Feed、日期及 CLI 回归均保留。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
 
 黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)。
 
 ## Roadmap
 
 - 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes `joanna/moonfeed@0.1.2` 发布。
-- 后续：Media RSS 等扩展、兼容性与性能改进。
+- 当前优先：补齐 Atom 相关 XML 1.0、完整 IRI/语言标签/email/MIME 规则和严格校验的版本迁移策略，逐项完成 RFC 4287 兼容矩阵。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 

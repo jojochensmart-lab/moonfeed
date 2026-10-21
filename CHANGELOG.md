@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add Atom Feed/Entry document APIs with distinct public result types and retained source, people, links, categories, rights, generator, content and expanded-name extension metadata. Existing normalization signatures remain unchanged.
+- Add XML Base scope and RFC 3986 reference resolution, retaining original and resolved references and a caller-supplied retrieval base.
+- Validate document cardinality, author conditions, content/link/summary rules and Atom-specific date syntax; retain precision, year 0000, recorded leap seconds and unknown-local-offset markers.
+- Preserve XHTML/XML content and decode Base64 content; cover RFC examples, URI resolution vectors and semantic errors with 29 new tests (117 total).
+- Add an executable Atom document equivalence example to CI and update the compliance matrix with remaining XML/IRI/language/email/MIME gaps. These changes are not yet published to Mooncakes.
+
 - Resolve Atom element and attribute names by namespace URI and local name in parsing and format detection; arbitrary prefixes are supported and foreign elements with colliding names are ignored.
 - Preserve the existing XML event API for RSS while adding namespace scope, reserved binding, unqualified attribute, and duplicate expanded-attribute handling.
 - Add Atom namespace equivalence and XML namespace edge-case tests, and document the remaining RFC 4287 compatibility gaps.
