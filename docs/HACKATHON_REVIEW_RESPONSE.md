@@ -21,7 +21,7 @@
 
 ## 验证结果
 
-项目原有基线是 81 个测试通过。本次新增 7 个测试，总计 88/88 通过；`moon check` 无警告，`moon build` 通过。测试使用项目内 MoonBit v0.10.14。RSS 与 JSON Feed 的原有回归用例均保留并通过。CI 状态将在本地修改安全推送后更新；本文件不预先宣称 CI 已通过。
+项目原有基线是 81 个测试通过。本次新增 7 个测试，总计 88/88 通过；`moon check` 无警告，`moon build` 通过。测试使用项目内 MoonBit v0.10.14。RSS 与 JSON Feed 的原有回归用例均保留并通过。推送提交 `76c87cee3ce67e18d733847fcfed2b349b7f3b5c` 的 [GitHub Actions run](https://github.com/jojochensmart-lab/moonfeed/actions/runs/39571382297) 已通过，CI 使用 MoonBit `0.1.20261020` / `moonc v0.10.16+b1a0e846e`。
 
 ## 完整兼容目标与当前缺口
 

@@ -264,4 +264,12 @@ test "Atom requires unqualified href and rejects roots outside Atom namespace" {
     )
     is @atom.ParseError::InvalidAtomRoot("feed"),
   )
+  assert_true(
+    atom_error(
+      (
+        #|<entry xmlns="http://www.w3.org/2005/Atom"><id>entry</id><title>Entry</title><updated>2024-01-02T03:04:05Z</updated></entry>
+      ),
+    )
+    is @atom.ParseError::InvalidAtomRoot("entry"),
+  )
 }
