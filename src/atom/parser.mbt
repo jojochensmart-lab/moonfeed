@@ -29,18 +29,31 @@ priv enum NodeContent {
 
 ///|
 priv struct Node {
-  name : String
-  attributes : Map[String, String]
+  name : @xmlmini.ExpandedName
+  attributes : Array[@xmlmini.NamespaceAttribute]
+  language : String?
   children : Array[Node]
   content : Array[NodeContent]
   text : StringBuilder
 }
 
 ///|
-fn make_node(element : @xmlmini.XmlElement) -> Node {
+fn make_node(
+  element : @xmlmini.NamespaceElement,
+  inherited_language : String?,
+) -> Node {
+  let language_attribute = namespace_attribute(
+    element, "http://www.w3.org/XML/1998/namespace", "lang",
+  )
+  let language = match language_attribute {
+    Some(value) if value.is_empty() => None
+    Some(value) => Some(value)
+    None => inherited_language
+  }
   {
     name: element.name,
     attributes: element.attributes,
+    language,
     children: [],
     content: [],
     text: StringBuilder(),
@@ -48,22 +61,9 @@ fn make_node(element : @xmlmini.XmlElement) -> Node {
 }
 
 ///|
-fn local_name(name : String) -> String {
-  if name.has_prefix("atom:") {
-    name[5:].to_owned()
-  } else {
-    name
-  }
-}
-
-///|
-fn is_atom_name(name : String) -> Bool {
-  !name.contains(":") || name.has_prefix("atom:")
-}
-
-///|
 fn named(node : Node, name : String) -> Bool {
-  is_atom_name(node.name) && local_name(node.name) == name
+  node.name.namespace_uri == Some("http://www.w3.org/2005/Atom") &&
+  node.name.local_name == name
 }
 
 ///|
@@ -73,7 +73,7 @@ fn atom_children(parent : Node, name : String) -> Array[Node] {
 
 ///|
 fn doc(input : String) -> Node raise ParseError {
-  let reader = @xmlmini.Reader::from_string(input)
+  let reader = @xmlmini.NamespaceReader::from_string(input)
   let stack : Array[Node] = []
   let roots : Array[Node] = []
   while true {
@@ -81,14 +81,24 @@ fn doc(input : String) -> Node raise ParseError {
       _ => raise InvalidXml("malformed XML")
     }
     match event {
-      Start(element) => {
+      @xmlmini.NamespaceStart(element) => {
         if stack.length() >= 256 {
           raise InvalidXml("element depth exceeds 256")
         }
-        stack.push(make_node(element))
+        let inherited_language = if stack.is_empty() {
+          None
+        } else {
+          stack[stack.length() - 1].language
+        }
+        stack.push(make_node(element, inherited_language))
       }
-      Empty(element) => {
-        let child = make_node(element)
+      @xmlmini.NamespaceEmpty(element) => {
+        let inherited_language = if stack.is_empty() {
+          None
+        } else {
+          stack[stack.length() - 1].language
+        }
+        let child = make_node(element, inherited_language)
         if stack.is_empty() {
           roots.push(child)
         } else {
@@ -96,7 +106,7 @@ fn doc(input : String) -> Node raise ParseError {
           stack[stack.length() - 1].content.push(PartElement(child))
         }
       }
-      End(_) => {
+      @xmlmini.NamespaceEnd(_) => {
         guard stack.pop() is Some(child) else {
           raise InvalidXml("unexpected closing element")
         }
@@ -107,18 +117,33 @@ fn doc(input : String) -> Node raise ParseError {
           stack[stack.length() - 1].content.push(PartElement(child))
         }
       }
-      Text(value) | CData(value) =>
+      @xmlmini.NamespaceText(value) | @xmlmini.NamespaceCData(value) =>
         if !stack.is_empty() {
           stack[stack.length() - 1].text.write_string(value)
           stack[stack.length() - 1].content.push(PartText(value))
         }
-      Eof => break
+      @xmlmini.NamespaceEof => break
     }
   }
   guard roots.length() == 1 && stack.is_empty() else {
     raise InvalidXml("expected one complete document element")
   }
   roots[0]
+}
+
+///|
+fn namespace_attribute(
+  element : @xmlmini.NamespaceElement,
+  namespace_uri : String,
+  local_name : String,
+) -> String? {
+  for attribute in element.attributes {
+    if attribute.name.namespace_uri == Some(namespace_uri) &&
+      attribute.name.local_name == local_name {
+      return Some(attribute.value)
+    }
+  }
+  None
 }
 
 ///|
@@ -173,7 +198,7 @@ fn required_text(
 
 ///|
 fn attr(node : Node, key : String, path : String) -> String raise ParseError {
-  match node.attributes.get(key) {
+  match optional_attr(node, key) {
     Some(value) if !value.trim(chars=" \t\r\n").is_empty() => value
     _ =>
       raise InvalidRequiredField(path + "." + key, "missing or empty attribute")
@@ -182,15 +207,21 @@ fn attr(node : Node, key : String, path : String) -> String raise ParseError {
 
 ///|
 fn optional_attr(node : Node, key : String) -> String? {
-  match node.attributes.get(key) {
-    Some(value) if !value.trim(chars=" \t\r\n").is_empty() => Some(value)
-    _ => None
+  for attribute in node.attributes {
+    if attribute.name.namespace_uri is None && attribute.name.local_name == key {
+      return if !attribute.value.trim(chars=" \t\r\n").is_empty() {
+        Some(attribute.value)
+      } else {
+        None
+      }
+    }
   }
+  None
 }
 
 ///|
 fn text_construct(node : Node) -> String {
-  let kind = node.attributes.get("type").unwrap_or("text")
+  let kind = optional_attr(node, "type").unwrap_or("text")
   if kind == "xhtml" {
     plain_text(node)
   } else {
@@ -250,7 +281,7 @@ fn link_values(
   for index, link in atom_children(parent, "link") {
     let link_path = path + ".link[\{index}]"
     let href = attr(link, "href", link_path)
-    let rel = link.attributes.get("rel").unwrap_or("alternate")
+    let rel = optional_attr(link, "rel").unwrap_or("alternate")
     match rel {
       "alternate" => if alternate is None { alternate = Some(href) }
       "self" => if self_url is None { self_url = Some(href) }
@@ -305,7 +336,7 @@ fn entry(
   let summary = construct(node, "summary", path)
   let content = construct(node, "content", path)
   let content_kind = match one(node, "content", path) {
-    Some(c) => c.attributes.get("type").unwrap_or("text")
+    Some(c) => optional_attr(c, "type").unwrap_or("text")
     _ => ""
   }
   {
@@ -333,7 +364,7 @@ fn entry(
     published_at,
     updated: Some(updated),
     updated_at: Some(updated_at),
-    language: None,
+    language: node.language,
     categories: categories(node, path),
     attachments,
   }
@@ -344,7 +375,7 @@ fn entry(
 pub fn parse(input : String) -> @model.Feed raise ParseError {
   let root = doc(input)
   if !named(root, "feed") {
-    raise InvalidAtomRoot(root.name)
+    raise InvalidAtomRoot(root.name.local_name)
   }
   let _feed_id = required_text(root, "id", "feed")
   let title = construct(root, "title", "feed")
@@ -366,7 +397,7 @@ pub fn parse(input : String) -> @model.Feed raise ParseError {
     description: construct(root, "subtitle", "feed"),
     home_page_url,
     feed_url,
-    language: optional_attr(root, "xml:lang"),
+    language: root.language,
     authors,
     categories: categories(root, "feed"),
     updated: Some(updated),

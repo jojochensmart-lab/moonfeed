@@ -22,7 +22,7 @@ test "RSS dates normalize channel updated and item published fields" {
 ///|
 test "Atom dates normalize required and optional fields" {
   let feed = @moonfeed.parse(
-    "<feed><id>f</id><title>Dates</title><updated>2026-10-03T20:00:00+08:00</updated><entry><id>e</id><title>Entry</title><updated>2026-10-03T12:00:00Z</updated><published>2026-10-03T09:00:00-03:00</published></entry></feed>",
+    "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>Dates</title><updated>2026-10-03T20:00:00+08:00</updated><entry><id>e</id><title>Entry</title><updated>2026-10-03T12:00:00Z</updated><published>2026-10-03T09:00:00-03:00</published></entry></feed>",
   )
   @test.assert_eq(feed.updated, Some("2026-10-03T20:00:00+08:00"))
   @test.assert_eq(feed.updated_at.unwrap().unix_seconds, 1791028800L)
@@ -30,7 +30,7 @@ test "Atom dates normalize required and optional fields" {
   @test.assert_eq(feed.items[0].published, Some("2026-10-03T09:00:00-03:00"))
   @test.assert_eq(feed.items[0].published_at.unwrap().unix_seconds, 1791028800L)
   let optional_bad = @moonfeed.parse(
-    "<feed><id>f</id><title>Dates</title><updated>2026-10-03T12:00:00Z</updated><entry><id>e</id><title>Entry</title><updated>2026-10-03T12:00:00Z</updated><published>unknown</published></entry></feed>",
+    "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>Dates</title><updated>2026-10-03T12:00:00Z</updated><entry><id>e</id><title>Entry</title><updated>2026-10-03T12:00:00Z</updated><published>unknown</published></entry></feed>",
   )
   @test.assert_eq(optional_bad.items[0].published, Some("unknown"))
   @test.assert_eq(optional_bad.items[0].published_at, None)
@@ -57,7 +57,7 @@ test "invalid required Atom updated returns typed datetime error" {
   assert_true(
     try {
       let _ = @moonfeed.parse(
-        "<feed><id>f</id><title>Dates</title><updated>2026-02-30T12:00:00Z</updated></feed>",
+        "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>Dates</title><updated>2026-02-30T12:00:00Z</updated></feed>",
       )
       false
     } catch {
@@ -70,7 +70,7 @@ test "invalid required Atom updated returns typed datetime error" {
   assert_true(
     try {
       let _ = @moonfeed.parse(
-        "<feed><id>f</id><title>Dates</title><updated>2026-10-03T12:00:00Z</updated><entry><id>e</id><title>Entry</title><updated>2026-02-30T12:00:00Z</updated></entry></feed>",
+        "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>Dates</title><updated>2026-10-03T12:00:00Z</updated><entry><id>e</id><title>Entry</title><updated>2026-02-30T12:00:00Z</updated></entry></feed>",
       )
       false
     } catch {

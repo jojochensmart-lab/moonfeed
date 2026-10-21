@@ -9,6 +9,37 @@ pub(all) suberror XmlError {
 }
 
 // Types and methods
+pub struct ExpandedName {
+  namespace_uri : String?
+  local_name : String
+}
+
+pub struct NamespaceAttribute {
+  name : ExpandedName
+  value : String
+}
+
+pub struct NamespaceElement {
+  name : ExpandedName
+  attributes : Array[NamespaceAttribute]
+}
+
+pub enum NamespaceEvent {
+  NamespaceStart(NamespaceElement)
+  NamespaceEnd(ExpandedName)
+  NamespaceEmpty(NamespaceElement)
+  NamespaceText(String)
+  NamespaceCData(String)
+  NamespaceEof
+}
+
+pub struct NamespaceReader {
+  inner : Reader
+  scopes : Array[Map[String, String]]
+}
+pub fn NamespaceReader::from_string(String) -> Self
+pub fn NamespaceReader::read_event(Self) -> NamespaceEvent raise XmlError
+
 pub struct Reader {
   chars : Array[Char]
   mut pos : Int

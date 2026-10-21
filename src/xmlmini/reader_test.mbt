@@ -82,3 +82,94 @@ test "xmlmini skips comments between events" {
   assert_true(events[1] is @xmlmini.Empty(_))
   assert_true(events[2] is @xmlmini.End("x"))
 }
+
+///|
+fn namespace_events(
+  input : String,
+) -> Array[@xmlmini.NamespaceEvent] raise @xmlmini.XmlError {
+  let reader = @xmlmini.NamespaceReader::from_string(input)
+  let result = []
+  while true {
+    let event = reader.read_event()
+    result.push(event)
+    if event is @xmlmini.NamespaceEof {
+      break
+    }
+  }
+  result
+}
+
+///|
+fn namespace_error(input : String) -> Bool {
+  try {
+    let _ = namespace_events(input)
+    false
+  } catch {
+    @xmlmini.Malformed(_) => true
+  }
+}
+
+///|
+test "xmlmini expands default and arbitrary prefixed names and attributes" {
+  let events = namespace_events(
+    "<root xmlns='urn:root' xmlns:p='urn:attribute' id='plain' p:id='qualified'><child xmlns=''/><p:child/></root>",
+  )
+  match events[0] {
+    @xmlmini.NamespaceStart(element) => {
+      @test.assert_eq(element.name.namespace_uri, Some("urn:root"))
+      @test.assert_eq(element.name.local_name, "root")
+      @test.assert_eq(element.attributes.length(), 2)
+      @test.assert_eq(element.attributes[0].name.namespace_uri, None)
+      @test.assert_eq(
+        element.attributes[1].name.namespace_uri,
+        Some("urn:attribute"),
+      )
+    }
+    _ => assert_true(false)
+  }
+  match events[1] {
+    @xmlmini.NamespaceEmpty(element) =>
+      @test.assert_eq(element.name.namespace_uri, None)
+    _ => assert_true(false)
+  }
+  match events[2] {
+    @xmlmini.NamespaceEmpty(element) =>
+      @test.assert_eq(element.name.namespace_uri, Some("urn:attribute"))
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "xmlmini namespace rebinding is scoped and default namespace can reset" {
+  let events = namespace_events(
+    "<p:root xmlns:p='urn:one' xmlns='urn:default'><p:outer><p:inner xmlns:p='urn:two'><inner xmlns=''/></p:inner><p:after/></p:outer></p:root>",
+  )
+  match (events[0], events[1], events[2], events[3], events[5]) {
+    (
+      @xmlmini.NamespaceStart(root),
+      @xmlmini.NamespaceStart(outer),
+      @xmlmini.NamespaceStart(inner),
+      @xmlmini.NamespaceEmpty(reset),
+      @xmlmini.NamespaceEmpty(after),
+    ) => {
+      @test.assert_eq(root.name.namespace_uri, Some("urn:one"))
+      @test.assert_eq(outer.name.namespace_uri, Some("urn:one"))
+      @test.assert_eq(inner.name.namespace_uri, Some("urn:two"))
+      @test.assert_eq(reset.name.namespace_uri, None)
+      @test.assert_eq(after.name.namespace_uri, Some("urn:one"))
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "xmlmini rejects undeclared prefixes reserved bindings and expanded duplicates" {
+  assert_true(namespace_error("<p:root/>"))
+  assert_true(namespace_error("<root xmlns:xml='urn:wrong'/>"))
+  assert_true(
+    namespace_error(
+      "<root xmlns:a='urn:same' xmlns:b='urn:same' a:id='1' b:id='2'/>",
+    ),
+  )
+  assert_true(namespace_error("<root xmlns:xmlns='urn:bad'/>"))
+}

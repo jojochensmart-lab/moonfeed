@@ -20,7 +20,7 @@
 - MoonBit >= v0.10.14
 - 当前开发验证使用 MoonBit `0.1.20260920` / `moonc v0.10.14+7d59c7ec9`。
 - GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本；本地开发验证固定使用 v0.10.14，CI 实际版本每次需结合日志确认。
-- RSS 与 Atom XML 解析使用 MoonFeed 内部的 src/xmlmini 子集 reader，不依赖第三方 XML registry 包。
+- RSS 与 Atom XML 解析使用 MoonFeed 内部 `src/xmlmini` reader，不依赖第三方 XML registry 包。Atom 元素按 namespace URI 与 local name 识别；RFC 4287 尚未完整实现，详见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 实现依据：[JSON Feed 1.1 规范](https://www.jsonfeed.org/version/1.1/) 和 [RSS 2.0 规范](https://www.rssboard.org/rss-specification)。
 
@@ -68,7 +68,7 @@ Items: 2
 ```
 ## 当前限制
 
-MoonFeed 只解析本地传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展目前支持常用节目与单集元数据；Media RSS、Podcast chapters、transcripts 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。XML reader 是内部实现，只覆盖 Feed parser 需要的 XML 子集，限制见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
+MoonFeed 只解析本地传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展目前支持常用节目与单集元数据；Media RSS、Podcast chapters、transcripts 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。当前 Atom parser 面向 Feed Document 常用字段，不代表完整 RFC 4287 兼容；Entry Document、`xml:base` 相对 IRI、完整 construct 验证和扩展元数据保留尚未实现。XML reader 是内部实现，只覆盖 Feed parser 需要的 XML 子集，限制见 [ARCHITECTURE](docs/ARCHITECTURE.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 ## API 示例
 
@@ -159,7 +159,9 @@ let duration = first_episode.duration_in_seconds
 - entry 没有 author 时继承 feed authors；entry 自己声明 author 时使用 entry authors。Atom contributors 不并入 authors。
 - text（含缺省 type）写入 content_text；html 写入 content_html；xhtml 提取可读文本后写入 content_html。
 - Feed id、rights、generator、icon/logo、作者 email、contributors、entry rights/source，以及未知 rel 链接目前没有统一模型字段，因此解析后不保留。扩展节点被忽略。
-- namespace 策略接受默认 Atom namespace、无前缀名称和 atom: 前缀；不核验 namespace URI，也不实现通用 namespace engine。
+- Atom 标准元素必须属于 `http://www.w3.org/2005/Atom`，并按展开名称（namespace URI + local name）匹配。默认命名空间和任意合法前缀等价；同 local name 的其他 namespace 扩展节点不会被当作 Atom 字段。
+- 内部 XML reader 支持默认/显式前缀绑定、作用域继承与重绑定、默认 namespace 清空、XML 保留前缀规则、无前缀属性不继承默认 namespace，以及重复展开属性检测。它仍是 Feed 专用子集 reader，不是完整 XML 处理器。
+- Atom 当前支持范围不等于完整 RFC 4287 兼容。Feed Document 常用字段可规范化，但 Entry Document、`xml:base`、完整 person/link/category/construct 约束、Atom source 和扩展元数据保留尚未实现；逐项状态见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 最小调用：@moonfeed.parse_atom("<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:news</id><title>News</title><updated>2026-10-01T12:00:00Z</updated><entry><id>post-1</id><title>First post</title><updated>2026-10-01T12:00:00Z</updated><summary>Hello</summary></entry></feed>")，返回统一 Feed，条目 id 为 post-1。
 
@@ -197,7 +199,9 @@ moon test
 moon build
 ```
 
-当前共有 80 个行为测试：15 个 JSON Feed、12 个 RSS 核心、7 个 RSS Podcast 扩展、5 个 xmlmini、12 个 Atom、9 个自动检测/统一入口、14 个日期解析/集成测试和 6 个 CLI 测试。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+当前共有 88 个行为测试。除 RSS、JSON Feed、日期与 CLI 回归外，测试还覆盖默认 namespace、任意前缀、前缀重绑定、默认 namespace 清空、未声明前缀、保留绑定、重复展开属性和 Atom 扩展同名元素隔离。`fixtures/rss/` 包含最小、完整、多条目和 Podcast 风格的小型自构造样例；不复制第三方商业 Feed。
+
+黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)。
 
 ## Roadmap
 

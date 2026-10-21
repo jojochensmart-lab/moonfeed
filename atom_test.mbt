@@ -74,7 +74,7 @@ test "Atom self alternate and enclosure links use relation semantics" {
 ///|
 test "Atom missing rel means alternate and self closing links are accepted" {
   let feed = @moonfeed.parse_atom(
-    "<feed><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link href=\"home\"/><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link rel=\"self\" href=\"item-self\"/><link href=\"item-home\"/></entry></feed>",
+    "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link href=\"home\"/><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link rel=\"self\" href=\"item-self\"/><link href=\"item-home\"/></entry></feed>",
   )
   @test.assert_eq(feed.home_page_url, Some("home"))
   @test.assert_eq(feed.items[0].url, Some("item-home"))
@@ -90,11 +90,11 @@ test "Atom prefixed names and extension elements are handled" {
 ///|
 test "Atom xhtml content reduces markup to readable text" {
   let feed = @moonfeed.parse_atom(
-    "<feed><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><content type=\"xhtml\"><div xmlns=\"http://www.w3.org/1999/xhtml\">Hello <b>Moon</b></div></content></entry></feed>",
+    "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><content type=\"xhtml\"><div xmlns=\"http://www.w3.org/1999/xhtml\">Hello <b>Moon</b></div></content></entry></feed>",
   )
   @test.assert_eq(feed.items[0].content_html, Some("Hello Moon"))
   let mixed = @moonfeed.parse_atom(
-    "<feed><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><content type=\"xhtml\"><div>Hello <b>Moon</b> world</div></content></entry></feed>",
+    "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><content type=\"xhtml\"><div>Hello <b>Moon</b> world</div></content></entry></feed>",
   )
   @test.assert_eq(mixed.items[0].content_html, Some("Hello Moon world"))
 }
@@ -116,33 +116,37 @@ test "Atom validates root and required feed and entry fields with paths" {
   assert_true(atom_error("<rss/>") is @atom.ParseError::InvalidAtomRoot(_))
   assert_true(
     atom_error(
-      "<feed><title>x</title><updated>2024-01-02T03:04:05Z</updated></feed>",
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>x</title><updated>2024-01-02T03:04:05Z</updated></feed>",
     )
     is @atom.ParseError::InvalidRequiredField("feed.id", _),
   )
   assert_true(
-    atom_error("<feed><id>f</id><updated>2024-01-02T03:04:05Z</updated></feed>")
+    atom_error(
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><updated>2024-01-02T03:04:05Z</updated></feed>",
+    )
     is @atom.ParseError::InvalidRequiredField("feed.title", _),
   )
   assert_true(
-    atom_error("<feed><id>f</id><title>x</title></feed>")
+    atom_error(
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</title></feed>",
+    )
     is @atom.ParseError::InvalidRequiredField("feed.updated", _),
   )
   assert_true(
     atom_error(
-      "<feed><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><entry><title>x</title><updated>2024-01-02T03:04:05Z</updated></entry></feed>",
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><entry><title>x</title><updated>2024-01-02T03:04:05Z</updated></entry></feed>",
     )
     is @atom.ParseError::InvalidRequiredField("feed.entry[0].id", _),
   )
   assert_true(
     atom_error(
-      "<feed><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><updated>2024-01-02T03:04:05Z</updated></entry></feed>",
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><updated>2024-01-02T03:04:05Z</updated></entry></feed>",
     )
     is @atom.ParseError::InvalidRequiredField("feed.entry[0].title", _),
   )
   assert_true(
     atom_error(
-      "<feed><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>x</title></entry></feed>",
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>x</title></entry></feed>",
     )
     is @atom.ParseError::InvalidRequiredField("feed.entry[0].updated", _),
   )
@@ -150,20 +154,25 @@ test "Atom validates root and required feed and entry fields with paths" {
 
 ///|
 test "Atom invalid XML and required link/category attributes have typed paths" {
-  assert_true(atom_error("<feed><id>f</id>") is @atom.ParseError::InvalidXml(_))
   assert_true(
-    atom_error("<feed><id>f</id><title>x</feed>")
+    atom_error("<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id>")
     is @atom.ParseError::InvalidXml(_),
   )
   assert_true(
     atom_error(
-      "<feed><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><link rel=\"alternate\"/></feed>",
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</feed>",
+    )
+    is @atom.ParseError::InvalidXml(_),
+  )
+  assert_true(
+    atom_error(
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><link rel=\"alternate\"/></feed>",
     )
     is @atom.ParseError::InvalidRequiredField("feed.link[0].href", _),
   )
   assert_true(
     atom_error(
-      "<feed><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><category scheme=\"s\"/></feed>",
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>x</title><updated>2024-01-02T03:04:05Z</updated><category scheme=\"s\"/></feed>",
     )
     is @atom.ParseError::InvalidRequiredField("feed.category[0].term", _),
   )
@@ -171,15 +180,88 @@ test "Atom invalid XML and required link/category attributes have typed paths" {
 
 ///|
 test "Atom fixture category repeats and category errors are scoped" {
-  let input = "<feed><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><category term=\"one\"/><category term=\"two\"/></feed>"
+  let input = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><category term=\"one\"/><category term=\"two\"/></feed>"
   @test.assert_eq(@moonfeed.parse_atom(input).categories, ["one", "two"])
 }
 
 ///|
 test "Atom malformed enclosure length is rejected" {
-  let input = "<feed><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link rel=\"enclosure\" href=\"u\" length=\"bad\"/></entry></feed>"
+  let input = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><entry><id>e</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link rel=\"enclosure\" href=\"u\" length=\"bad\"/></entry></feed>"
   assert_true(
     atom_error(input)
     is @atom.ParseError::InvalidRequiredField("feed.entry[0].link[0].length", _),
+  )
+}
+
+///|
+test "Atom namespace URI makes default and arbitrary prefixes equivalent" {
+  let default_feed = @moonfeed.parse_atom(
+    (
+      #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:test</id><title>Names</title><updated>2024-01-02T03:04:05Z</updated><author><name>MoonBit</name></author><entry><id>entry</id><title>Item</title><updated>2024-01-02T03:04:05Z</updated><published>2024-01-01T03:04:05Z</published><link href="https://example.org/item"/></entry></feed>
+    ),
+  )
+  let prefixed_feed = @moonfeed.parse_atom(
+    (
+      #|<x:feed xmlns:x="http://www.w3.org/2005/Atom"><x:id>urn:test</x:id><x:title>Names</x:title><x:updated>2024-01-02T03:04:05Z</x:updated><x:author><x:name>MoonBit</x:name></x:author><x:entry><x:id>entry</x:id><x:title>Item</x:title><x:updated>2024-01-02T03:04:05Z</x:updated><x:published>2024-01-01T03:04:05Z</x:published><x:link href="https://example.org/item"/></x:entry></x:feed>
+    ),
+  )
+  @test.assert_eq(prefixed_feed.title, default_feed.title)
+  @test.assert_eq(prefixed_feed.updated, default_feed.updated)
+  @test.assert_eq(prefixed_feed.authors, default_feed.authors)
+  @test.assert_eq(prefixed_feed.items, default_feed.items)
+  @test.assert_eq(prefixed_feed.items[0].id, "entry")
+  @test.assert_eq(
+    prefixed_feed.items[0].published,
+    Some("2024-01-01T03:04:05Z"),
+  )
+  @test.assert_eq(
+    prefixed_feed.items[0].published_at,
+    default_feed.items[0].published_at,
+  )
+}
+
+///|
+test "Atom ignores extension elements with colliding local names" {
+  let feed = @moonfeed.parse_atom(
+    (
+      #|<a:feed xmlns:a="http://www.w3.org/2005/Atom" xmlns:e="urn:extension" xml:lang="en"><a:id>urn:feed</a:id><a:title>Atom title</a:title><e:title>Extension title</e:title><a:title xmlns:a="urn:extension">Rebound title</a:title><a:updated>2024-01-02T03:04:05Z</a:updated><e:entry/><a:entry><a:id>entry</a:id><a:title>Atom entry</a:title><e:title>Extension entry</e:title><a:updated>2024-01-02T03:04:05Z</a:updated></a:entry></a:feed>
+    ),
+  )
+  @test.assert_eq(feed.title, "Atom title")
+  @test.assert_eq(feed.language, Some("en"))
+  @test.assert_eq(feed.items.length(), 1)
+  @test.assert_eq(feed.items[0].title, Some("Atom entry"))
+  @test.assert_eq(feed.items[0].language, Some("en"))
+}
+
+///|
+test "Atom mixes default and explicit namespaces and resets the default scope" {
+  let feed = @moonfeed.parse_atom(
+    (
+      #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="http://www.w3.org/2005/Atom"><id>urn:mixed</id><title>Mixed</title><updated>2024-01-02T03:04:05Z</updated><x:entry><id>entry</id><x:title>Item</x:title><updated>2024-01-02T03:04:05Z</updated></x:entry><outside xmlns=""><title>Not Atom</title><entry/></outside></feed>
+    ),
+  )
+  @test.assert_eq(feed.title, "Mixed")
+  @test.assert_eq(feed.items.length(), 1)
+  @test.assert_eq(feed.items[0].title, Some("Item"))
+}
+
+///|
+test "Atom requires unqualified href and rejects roots outside Atom namespace" {
+  assert_true(
+    atom_error(
+      (
+        #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:extension"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated><link x:href="https://example.org"/></feed>
+      ),
+    )
+    is @atom.ParseError::InvalidRequiredField("feed.link[0].href", _),
+  )
+  assert_true(
+    atom_error(
+      (
+        #|<feed xmlns="urn:not-atom"><id>f</id><title>t</title><updated>2024-01-02T03:04:05Z</updated></feed>
+      ),
+    )
+    is @atom.ParseError::InvalidAtomRoot("feed"),
   )
 }

@@ -71,20 +71,38 @@ test "format detector skips XML declaration and leading comments" {
 }
 
 ///|
-test "format detector accepts the declared atom prefix only" {
+test "format detector resolves Atom namespace prefixes" {
   @test.assert_eq(
     @detect.detect_format(
       "<atom:feed xmlns:atom=\"http://www.w3.org/2005/Atom\">",
     ),
     @detect.FeedFormat::Atom,
   )
-  assert_true(
-    format_error("<foo:feed xmlns:foo=\"http://www.w3.org/2005/Atom\">")
-    is @detect.DetectError::UnknownFormat,
+  @test.assert_eq(
+    @detect.detect_format(
+      "<foo:feed xmlns:foo=\"http://www.w3.org/2005/Atom\">",
+    ),
+    @detect.FeedFormat::Atom,
   )
-  assert_true(format_error("<atom:feed>") is @detect.DetectError::UnknownFormat)
+  @test.assert_eq(
+    @detect.detect_format("<x:entry xmlns:x=\"http://www.w3.org/2005/Atom\">"),
+    @detect.FeedFormat::Atom,
+  )
+  @test.assert_eq(
+    @detect.detect_format(
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><ext:feed xmlns:ext=\"urn:extension\"/>",
+    ),
+    @detect.FeedFormat::Atom,
+  )
+  assert_true(
+    format_error("<atom:feed>") is @detect.DetectError::MalformedPrefix(_),
+  )
   assert_true(
     format_error("<feed xmlns=\"urn:not-atom\">")
+    is @detect.DetectError::UnknownFormat,
+  )
+  assert_true(
+    format_error("<x:feed xmlns:x=\"urn:not-atom\">")
     is @detect.DetectError::UnknownFormat,
   )
 }
@@ -150,7 +168,9 @@ test "unified parse preserves format-specific typed errors" {
     is @moonfeed.ParseError::Rss(@rss.UnsupportedRssVersion("1.0")),
   )
   assert_true(
-    unified_error("<feed><id>f</id><title>T</title></feed>")
+    unified_error(
+      "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>T</title></feed>",
+    )
     is @moonfeed.ParseError::Atom(@atom.InvalidRequiredField("feed.updated", _)),
   )
 }

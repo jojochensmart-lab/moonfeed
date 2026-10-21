@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Resolve Atom element and attribute names by namespace URI and local name in parsing and format detection; arbitrary prefixes are supported and foreign elements with colliding names are ignored.
+- Preserve the existing XML event API for RSS while adding namespace scope, reserved binding, unqualified attribute, and duplicate expanded-attribute handling.
+- Add Atom namespace equivalence and XML namespace edge-case tests, and document the remaining RFC 4287 compatibility gaps.
+
 ## 0.1.0 — 2026-10-03
 
 - Introduce unified Feed, FeedItem, Author, Attachment, and FeedLink types.

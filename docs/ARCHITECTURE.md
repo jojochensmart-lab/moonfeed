@@ -3,7 +3,7 @@
 ## Boundaries
 
 - Root package `joanna/moonfeed`: public `parse` auto-detection entry point and explicit `parse_json_feed`, `parse_rss`, and `parse_atom` entry points.
-- `src/detect`: lightweight JSON Feed/RSS/Atom classification from the input prefix.
+- `src/detect`: JSON/RSS/Atom classification using the XML reader's expanded root name.
 - `src/model`: shared `Feed`, `FeedItem`, `Author`, `Attachment`, and `FeedLink` types.
 - `src/jsonfeed`: JSON decoding, supported-field validation, and normalization.
 - `src/rss`: RSS XML event consumption, RSS-specific raw types, typed validation, and normalization.
@@ -12,7 +12,7 @@
 - `cli`: Node.js-hosted executable frontend for detect, inspect, and normalized JSON output; it delegates parsing to the public unified entry point.
 - `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
-RSS XML parsing uses MoonFeed internal package `src/xmlmini`; it is not re-exported from the root library API and is not supported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
+RSS and Atom XML parsing use MoonFeed internal package `src/xmlmini`; it is not re-exported from the root library API and is not supported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; CI and development verification use the v0.10.14 toolchain series.
 
 ## CLI data flow
 
@@ -27,7 +27,7 @@ The CLI contains no format parser. It reads bytes/text through Node.js host APIs
 
 `JSON String -> core/json AST -> validated fields -> unified Feed`
 
-`src/xmlmini` is a deliberately small internal event reader for the feed formats. It handles XML declarations, start/end/self-closing tags, quoted attributes, text, CDATA, comments, the five basic XML entities, decimal/hex numeric entities, and mismatched or unclosed tags. It keeps qualified names such as `content:encoded` intact and does not resolve namespace semantics. It does not implement DTD validation, external entities, XML 1.1, schemas, XPath, streaming I/O, or encoding conversion.
+`src/xmlmini` is a deliberately small internal event reader for the feed formats. Its original event API preserves qualified names for RSS. A namespace-aware event API expands element and attribute names to `(namespace URI, local name)`, tracks inherited and rebound prefix scopes, handles default namespace reset, applies the implicit `xml` binding and reserved-prefix constraints, leaves unprefixed attributes outside the default namespace, and rejects duplicate expanded attribute names. It also handles XML declarations, start/end/self-closing tags, quoted attributes, text, CDATA, comments, the five basic XML entities, decimal/hex numeric entities, and mismatched or unclosed tags. It does not implement general DTD validation, external entities, XML 1.1, schemas, XPath, streaming I/O, encoding conversion, or complete XML well-formedness validation.
 
 ## Format detection and unified parser
 
@@ -46,7 +46,7 @@ Normalizer
   ↓
 Unified Feed Model
 
-The detector skips a leading UTF-8 BOM, XML whitespace, comments, and an XML declaration, then reads only the root start tag and its attributes. A leading opening brace selects a JSON Feed candidate; it does not validate JSON or the Feed schema. Exact rss roots select RSS. Exact feed roots select Atom unless they declare a different default namespace. atom:feed is accepted only when xmlns:atom declares the Atom URI. Other XML roots and prefixes are UnknownFormat; truncated declaration, comment, or root prefixes are MalformedPrefix.
+The detector skips a leading UTF-8 BOM and XML whitespace, then uses the namespace-aware reader to consume comments and the XML declaration before inspecting the root element. A leading opening brace selects a JSON Feed candidate; it does not validate JSON or the Feed schema. An unqualified `rss` root selects RSS. `feed` or `entry` selects Atom only when its expanded namespace URI is `http://www.w3.org/2005/Atom`, independent of the chosen prefix. Other roots or namespace URIs are UnknownFormat; malformed namespace bindings are MalformedPrefix.
 
 Detection is deliberately not complete format validation and does not parse the full document. Each existing parser owns syntax and schema validation. The unified ParseError preserves a DetectError or the corresponding JSON Feed, RSS, or Atom typed parser error. BOM removal is applied before dispatch so the JSON parser also receives a clean input string. Explicit format-specific entry points remain public.
 ## RSS parser layer
@@ -78,11 +78,11 @@ src/atom consumes the shared src/xmlmini event stream. It requires feed id, titl
 
 Feed subtitle maps to Feed.description; feed self and alternate links map to feed_url and home_page_url. Entry alternate links map to FeedItem.url; enclosure links map to attachments. An omitted rel defaults to alternate. The first alternate and first self link are used. Link type, hreflang, and title metadata outside enclosure attachments are not retained. Unknown rel values are ignored because Feed has no link-collection slot.
 
-Atom person names and URIs map to Author.name and Author.url. Multiple authors are retained. An entry with no author inherits feed authors; an entry with its own author list uses that list. Contributors and person emails have no shared-model fields and are not placed in authors. Atom category term attributes populate categories; a missing term raises a path-specific error.
+Atom person names and URIs map to Author.name and Author.url. Multiple authors are retained. An entry with no author inherits feed authors; an entry with its own author list uses that list. `xml:lang` is inherited by feed and entry and an empty value clears the inherited language. Contributors and person emails have no shared-model fields and are not placed in authors. Atom category term attributes populate categories; a missing term raises a path-specific error.
 
 Text constructs default to type=text: text maps to content_text, html maps to content_html, and xhtml is reduced to readable descendant text and mapped to content_html. Other media types are not mapped to content fields yet. XML event order is retained while extracting nested XHTML so mixed text stays in order. Feed/entry rights, generator, icon, logo, entry source, feed id, and unsupported person/link details have no slots in the shared model and are discarded during normalization.
 
-Namespace matching recognizes unprefixed names and the literal atom: prefix by local name. It does not validate namespace URIs or resolve arbitrary prefix bindings. Other prefixed elements such as ext:title are ignored. This covers required common shapes while keeping xmlmini feed-focused rather than introducing a complete namespace engine.
+Every Atom field lookup compares the expanded name against the Atom namespace URI and the required local name. Default namespace and arbitrary prefix representations therefore have the same result, while foreign extension elements with colliding local names are ignored. The reader resolves namespace bindings but remains a feed-focused XML subset reader, not a general XML namespace or validation library. The current Atom implementation is not fully RFC 4287 conformant: it accepts Feed Documents only, drops unsupported metadata and extensions, does not resolve `xml:base` relative IRIs, and validates only the common subset of constructs and cardinality rules. See [ATOM_RFC4287_COMPLIANCE.md](ATOM_RFC4287_COMPLIANCE.md) for the audited status and follow-up work.
 ## Dates and errors
 
 Parser output follows the path Format parser -> raw date -> src/datetime -> normalized UTC representation -> unified Feed model. The existing String? date fields remain available as extracted by their format parsers. Feed.updated_at, FeedItem.published_at, and FeedItem.updated_at hold an optional DateTime { raw, unix_seconds }; Unix seconds use Int64, giving a comparable and serializable UTC instant. The MoonBit v0.10.14 core library has no calendar parser suitable for these feed formats, so src/datetime implements only the constrained feed-date subset.
@@ -99,6 +99,6 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 80 behavior tests: 15 JSON Feed, 12 RSS core, 7 RSS Podcast extensions, 5 xmlmini, 12 Atom, 9 detection/unified-entry, 14 datetime parsing/integration, and 6 CLI tests. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
+The current suite has 88 behavior tests. It includes Atom namespace equivalence, expansion, scope rebinding/reset, reserved bindings, duplicate expanded attributes, and foreign-element collision cases, alongside the existing JSON Feed/RSS/date/CLI regression suite. CI installs the official latest channel and logs its MoonBit/moonc versions; local validation uses v0.10.14, and the actual CI version is confirmed from each run.
 
 Atom consumes the same internal XML event reader and normalizes into the shared model. Podcast RSS metadata is exposed through a separate wrapper so existing Feed and FeedItem layouts stay stable. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.
