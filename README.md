@@ -70,7 +70,7 @@ Items: 2
 ```
 ## 当前限制
 
-MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Git main 的 Atom 文档 API 已支持独立 Entry、XML Base 和专用元数据；完整 XML 1.0、IRI、语言标签及部分词法规则仍有缺口，因此不宣称完整 RFC 4287 兼容。详见 [ARCHITECTURE](docs/ARCHITECTURE.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Git main 的 Atom 文档 API 已支持独立 Entry、XML Base 和专用元数据；完整 XML 1.0、LEIRI、namespace URI 及部分历史 email/MIME 词法规则仍有缺口，因此不宣称完整 RFC 4287 兼容。详见 [ARCHITECTURE](docs/ARCHITECTURE.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 ## API 示例
 
@@ -181,7 +181,9 @@ test {
 
 `AtomDate` 保留原始字符串、完整小数位、`-00:00` 与闰秒标记，并提供 POSIX Unix 秒；已公告正闰秒和年 0000 有测试。闰秒在 POSIX 秒上与随后一秒重合，精确身份需同时查看标记与原始值。闰秒表需随未来 IERS 公告维护。
 
-运行 `moon run examples/atom` 可验证默认 namespace 与任意前缀的独立 Entry 得到等价结果。完整支持边界、已知缺口见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+严格文档入口已校验 RFC 3066 语言标签语法、`hreflang` 和 alternate 链接组合；`xml:lang` 支持继承、覆盖、空值清除，保留原大小写，不查询语言注册表。XML reader 处理行尾与属性字面空白规范化，字符引用保留原字符；严格入口验证 XML 声明位置和字段，普通处理指令被跳过。IRI 增加 IPv6/IPvFuture 与 Unicode/private-use 范围校验；MIME 支持注释、折行、quoted 参数和保留参数意义的比较。
+
+运行 `moon run examples/atom` 可验证默认 namespace 与任意前缀的独立 Entry 得到等价结果。迁移与版本策略见 [API_COMPATIBILITY](docs/API_COMPATIBILITY.md)，独立测试见 [conformance fixtures](fixtures/atom/conformance/README.md)。完整支持边界、已知缺口见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 ### 现有统一模型入口与迁移
 
@@ -236,14 +238,14 @@ moon test
 moon build
 ```
 
-当前共有 117 个行为测试：原有 88 项保持不变，新增 29 项覆盖 Atom 文档、XML Base、结构/作者/内容约束、元数据、日期边界与 XML 错误，包括 RFC 4287 正式示例和 RFC 3986 相对引用向量。RSS、JSON Feed、日期及 CLI 回归均保留。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
+当前共有 137 个行为测试：本轮原有 117 项保持不变，新增 20 项独立规范测试，覆盖语言、XML 声明/规范化、namespace、IRI、MIME/email 和 API 兼容边界。默认与 JS 目标均通过。此前 Atom 文档、XML Base、结构/作者/内容约束、日期及 RFC 正式向量均保留。RSS、JSON Feed、日期及 CLI 回归均保留。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
 
-黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)。
+黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，重新申报草稿见 [十月重新申报材料](docs/HACKATHON_RESUBMISSION_2026_10.md)。矩阵当前为 19 PASS / 8 PARTIAL / 0 FAIL；仍不宣称完整 RFC 4287 兼容。
 
 ## Roadmap
 
 - 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes `joanna/moonfeed@0.1.2` 发布。
-- 当前优先：补齐 Atom 相关 XML 1.0、完整 IRI/语言标签/email/MIME 规则和严格校验的版本迁移策略，逐项完成 RFC 4287 兼容矩阵。
+- 当前优先：补齐 Atom 相关 XML 1.0、剩余 LEIRI/namespace URI/历史 email/MIME 规则与闰秒维护，按已记录的 API 迁移策略，逐项完成 RFC 4287 兼容矩阵。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 

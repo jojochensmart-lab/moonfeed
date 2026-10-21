@@ -18,9 +18,9 @@ XML Base 在每个节点继承与覆盖，支持调用方提供检索 URI。相�
 
 AtomDate 保留原始日期、小数精度、-00:00 标记和闰秒标记；支持年 0000 与已公告正闰秒。Unix 秒保留 POSIX 语义，精确身份需同时查看原始值和标记。闰秒表引用 IANA/IERS 公共领域数据，后续公告需要维护。
 
-## 真实运行证据
+## 第二阶段运行证据
 
-当前本地使用 MoonBit 0.1.20260920 / moonc v0.10.14+7d59c7ec9，moon check 无警告、moon test 117/117、moon build 和两个示例通过。原有 88 个测试未修改或删除，新增 29 个有针对性的规范/边界测试，包含 RFC 4287 §1.1 正式 Feed 示例和 RFC 3986 §5.4 解析向量。
+第二阶段本地使用 MoonBit 0.1.20260920 / moonc v0.10.14+7d59c7ec9，moon check 无警告、moon test 117/117、moon build 和两个示例通过。原有 88 个测试未修改或删除，新增 29 个有针对性的规范/边界测试，包含 RFC 4287 §1.1 正式 Feed 示例和 RFC 3986 §5.4 解析向量。
 
 运行 moon run examples/atom，默认 namespace 与 x: 前缀的独立 Entry 文档逐字段比较 ID、标题、日期、作者、链接和正文，并输出：
 
@@ -37,6 +37,16 @@ https://example.org/article
 
 最终目标是 RFC 4287 Feed Document 与 Entry Document 的解析和语义处理。本次已补齐独立 Entry、XML Base、标准元数据访问和核心 MUST 数量/存在条件，并未达到无条件完整兼容。
 
-[兼容矩阵](ATOM_RFC4287_COMPLIANCE.md) 当前为 18 PASS、8 PARTIAL、1 FAIL。关键剩余点包括：完整 Atom 相关 XML 1.0 序列化与规范化、namespace URI 词法验证、完整 IRI/IPv6/IPvFuture/LEIRI 规则、语言标签语法、旧式 email/MIME 词法与链接等价比较，以及后续闰秒公告维护。既有统一模型入口仍是历史兼容的规范化入口，需单独制定严格校验的版本迁移策略。
+第二阶段矩阵为 18 PASS、8 PARTIAL、1 FAIL；第三轮后的当前结果及剩余项见下文。既有统一模型入口仍保留历史兼容行为，迁移策略已经另行记录。
 
 后续按上述顺序完善代码和独立规范向量，每项只有实现且有测试后才调整状态。当前材料足以证明本轮实质整改和明确路线，尚不能据此宣称完整 RFC 4287 兼容或保证重新审核通过。本阶段未发布 Mooncakes，Git main 的新增 API 尚不在已发布 0.1.2 中。
+
+## 第三轮：语言与 XML / IRI / MIME 边界
+
+基线 abd8a16 经重新运行验证为 117/117、0 warning、无依赖。实现提交 [8dd897c](https://github.com/jojochensmart-lab/moonfeed/commit/8dd897c1b2969a754cbfb005bf3ca03aef46b44d) 增加 RFC3066 语言标签语法和 hreflang 校验、XML 行尾/属性值规范化、声明语法/顺序/严格位置、一般 PI 和名称校验、namespace 字符串词法边界、IPv6/IPvFuture 与 Unicode IRI 范围，以及 MIME 注释/折行/参数比较和 email 折行诊断。带注释 text MIME 的 summary 分类错误已修复。
+
+原 117 个测试没有修改或删除，另增 20 个独立规范测试；默认与 JS 均为 137/137，check/build、两个示例、CLI smoke 通过。fixtures 与断言分离，反例匹配具体错误路径。[本轮实现 CI](https://github.com/jojochensmart-lab/moonfeed/actions/runs/39628836015) 已 success，check、137 tests、build、两个示例和 CLI smoke 全部通过；最终文档 HEAD 的 CI 需另核对 main 最新运行。
+
+当前矩阵为 **19 PASS、8 PARTIAL、0 FAIL**。完整 namespace URI/LEIRI、DTD/internal entity 等 XML 边界、历史 email/MIME productions、注册参数等价规则、闰秒维护与完整诊断覆盖仍待闭环。不能宣称完整 RFC4287 兼容。[九项审计](ATOM_ROUND3_AUDIT.md) 逐项记录原缺口、规范、代码、测试、修复和风险。
+
+[API_COMPATIBILITY](API_COMPATIBILITY.md) 说明旧入口保留宽松统一模型，新文档入口执行已实现的严格规则；版本未改，未执行 Mooncakes 发布。新建 [重新申报材料](HACKATHON_RESUBMISSION_2026_10.md)，包含三类实际应用场景、初审逐项回应、提交/CI/测试证据和明确剩余计划。原申报书.md 的 SHA256 保持 9018ED564BF0CDCB3F32028ADF415592E30A7489FD0B9B30218441FF8EBE5AEF，未修改或提交。

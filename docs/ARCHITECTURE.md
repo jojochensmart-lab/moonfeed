@@ -86,7 +86,11 @@ Text and HTML reject child elements. XHTML requires a single div in the XHTML na
 
 AtomDate applies uppercase T/Z and RFC 3339 calendar rules, preserves fractional digits and -00:00, supports Gregorian year 0000 and recorded positive leap seconds. Leap transitions use public-domain IANA/IERS data through 2017-01-01; future announcements require maintenance. POSIX seconds cannot distinguish a leap second from the next second, so raw/leap_second/fractional_digits remain explicit.
 
-The retained XML tree is semantic, not a byte-preserving serializer: comments, processing instructions and original namespace prefixes are not retained. Full XML 1.0 declaration/normalization/DTD/PI behavior, exhaustive IRI/namespace-URI/LEIRI grammar, language tags and some historical email/MIME productions remain incomplete. The exact scope is audited in [ATOM_RFC4287_COMPLIANCE.md](ATOM_RFC4287_COMPLIANCE.md).
+The retained XML tree is semantic, not a byte-preserving serializer: comments, processing instructions and original namespace prefixes are not retained. XML declarations (syntax/order/strict placement), general PI skipping, XML Name, physical line endings and literal attribute whitespace are now processed. Character references are decoded after physical normalization. DTD/internal declared entities and DTD attribute defaults/types remain unsupported. Exhaustive namespace-URI/LEIRI grammar and some historical email/MIME productions remain incomplete. The exact scope is audited in [ATOM_RFC4287_COMPLIANCE.md](ATOM_RFC4287_COMPLIANCE.md).
+
+Strict document validation recursively checks explicit xml:lang using RFC3066 syntax without a registry lookup. hreflang uses the same grammar without the XML empty-reset exception. media.mbt parses MIME tokens/comments/FWS/quoted parameters and compares parameter multisets while retaining raw values; charset is case-insensitive, unknown parameter values are not folded. Both content dispatch and summary requirements use parsed MIME essence. ip_literal.mbt validates IPv6/IPvFuture and Unicode component ranges. These are implementation checks, not third-party conformance certification.
+
+See [API_COMPATIBILITY](API_COMPATIBILITY.md) for strict versus legacy behavior and the unpublished release strategy. Only internal reader constructors gain an optional strict_declaration argument; root package signatures and document models are unchanged.
 
 ## Legacy Atom normalization and migration
 
@@ -115,6 +119,6 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 117 behavior tests: the original 88 are unchanged and 29 document/IRI/XML/metadata cases are added. CI runs both examples/basic and examples/atom in addition to check/test/build and existing CLI smoke tests. It installs the official latest channel and logs versions; local validation uses v0.10.14, while actual CI versions must be read from each run.
+The current suite has 137 behavior tests: the 117 baseline tests are unchanged and 20 specification-derived cases are added separately in atom_conformance_test.mbt with fixtures/atom/conformance. CI runs both examples/basic and examples/atom in addition to check/test/build and existing CLI smoke tests. It installs the official latest channel and logs versions; local validation uses v0.10.14, while actual CI versions must be read from each run.
 
 Atom consumes the same internal XML event reader and normalizes into the shared model. Podcast RSS metadata is exposed through a separate wrapper so existing Feed and FeedItem layouts stay stable. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.
