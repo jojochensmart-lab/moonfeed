@@ -19,4 +19,4 @@
 
 ## 发布版本评估
 
-Mooncakes registry 中最新已发布版本为 `0.1.2`，其中不含 Atom document API。新 API 增加独立 Feed/Entry 结果类型并保留原有 `parse` / `parse_atom` 签名和返回类型；共享 namespace reader 对非法 URI-reference 输入的拒绝属于解析错误收紧。根包接口无 breaking change，因此评估使用递增 minor 版本 `0.2.0`。候选版本只有在 main CI 通过、归档内容审阅、发布成功和全新项目安装 smoke 全通过后才标记为正式发布。未来若改变旧 parser 的宽松行为，须单独评估兼容性和迁移策略。
+Mooncakes 最新发布版本为 `0.2.0`。新 API 增加独立 Feed/Entry 结果类型并保留原有 `parse` / `parse_atom` 签名和返回类型；共享 namespace reader 对非法 URI-reference 输入的拒绝属于解析错误收紧。根包接口没有 breaking change。精确版本已在新项目通过 `moon add joanna/moonfeed` 从 registry 安装，生成 `joanna/moonfeed@0.2.0` 依赖声明，并完成 check/build 与 JSON、RSS、Atom Feed、Entry smoke。0.2.0 archive 内的 README 是发布前快照，仍提及 0.1.2/候选状态；GitHub README 已在 clean install 后更正，registry metadata、manifest 和实际 API 一致。此处只影响发布说明文字，不影响包内容和调用。未来若改变旧 parser 的宽松行为，须单独评估兼容性和迁移策略。

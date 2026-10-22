@@ -13,26 +13,26 @@
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
-| Mooncakes 发布 | `joanna/moonfeed@0.1.2`（当前 registry 最新版；0.2.0 待本轮闭环） |
+| Mooncakes 发布 | [`joanna/moonfeed@0.2.0`](https://mooncakes.io/docs/joanna/moonfeed%400.2.0) |
 
 ## Requirements
 
 - MoonBit >= v0.10.14
 - 当前开发验证使用 MoonBit `0.1.20260920` / `moonc v0.10.14+7d59c7ec9`。
-- GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本；本地开发验证固定使用 v0.10.14，CI 实际版本每次需结合日志确认。
+- GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本；本轮本地验证使用 MoonBit v0.10.14，CI 运行 39703833171 使用 moonc v0.10.16+b1a0e846e。
 - RSS 与 Atom XML 解析使用 MoonFeed 内部 `src/xmlmini` reader，不依赖第三方 XML registry 包。Atom 元素按 namespace URI 与 local name 识别；RFC 4287 尚未完整实现，详见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 实现依据：[JSON Feed 1.1 规范](https://www.jsonfeed.org/version/1.1/) 和 [RSS 2.0 规范](https://www.rssboard.org/rss-specification)。
 
 ## 安装与运行
 
-从 Mooncakes 安装已发布的 `0.1.2`：
+从 Mooncakes 安装当前已发布的 0.2.0：
 
 ```sh
-moon add joanna/moonfeed@0.1.2
+moon add joanna/moonfeed
 ```
 
-Atom 文档 API 和 namespace URI 校验修复已在 Git main。当前已发布的 `0.1.2` 不包含这些 API；本轮候选 `0.2.0` 仅在通过 GitHub CI、正式发布和全新 registry 安装后才视为已发布。
+`moon add joanna/moonfeed` 已在全新项目验证，当前 registry 解析并固定 `0.2.0`。该版本包含 Atom Feed/Entry 文档 API、namespace URI 校验和本 README 所述功能；`0.1.2` 不含这些新增 API。
 
 也可以从 GitHub 源码运行和开发：
 
@@ -238,13 +238,13 @@ moon test
 moon build
 ```
 
-当前共有 138 个行为测试：本轮原有 117 项保持不变，新增 21 项独立规范测试，覆盖语言、XML 声明/规范化、namespace、IRI、MIME/email 和 API 兼容边界。默认与 JS 目标均通过。此前 Atom 文档、XML Base、结构/作者/内容约束、日期及 RFC 正式向量均保留。RSS、JSON Feed、日期及 CLI 回归均保留。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
+当前共有 138 个行为测试：原有 117 项保持不变，新增 21 项独立规范测试，覆盖语言、XML 声明/规范化、namespace、IRI、MIME/email 和 API 兼容边界。默认与 JS 目标均通过；GitHub Actions 对应提交 687123f 也已通过 check、test、build、示例和 CLI smoke。此前 Atom 文档、XML Base、结构/作者/内容约束、日期及 RFC 正式向量均保留。RSS、JSON Feed、日期及 CLI 回归均保留。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
 
 黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，重新申报草稿见 [十月重新申报材料](docs/HACKATHON_RESUBMISSION_2026_10.md)。矩阵当前为 19 PASS / 8 PARTIAL / 0 FAIL；A03 新增 URI-reference 组件校验和边界向量，但仍保留 PARTIAL；仍不宣称完整 RFC 4287 兼容。
 
 ## Roadmap
 
-- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes `joanna/moonfeed@0.1.2` 发布。
+- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes joanna/moonfeed@0.2.0 发布。
 - 当前优先：补齐 Atom 相关 XML 1.0、剩余 LEIRI/namespace URI/历史 email/MIME 规则与闰秒维护，按已记录的 API 迁移策略，逐项完成 RFC 4287 兼容矩阵。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。

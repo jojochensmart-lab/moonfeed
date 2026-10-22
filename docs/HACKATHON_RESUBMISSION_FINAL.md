@@ -6,7 +6,7 @@
 - 参赛者：陈依堃
 - 联系方式：个人联系方式保留在报名原件中，不随公开仓库材料发布
 - GitHub 仓库：[jojochensmart-lab/moonfeed](https://github.com/jojochensmart-lab/moonfeed)
-- Mooncakes 模块：`joanna/moonfeed`；已发布版本为 `0.1.2`，本轮 `0.2.0` 为候选版本，只有 registry 发布和全新项目验证成功后才生效
+- Mooncakes 模块：`joanna/moonfeed`；已发布版本为 `0.2.0`，已由全新 registry 项目安装验证
 - 项目方向：MoonBit 生态基础库 / 信息订阅与内容解析基础设施
 - 是否为移植项目：否
 - 许可证：Apache-2.0
@@ -58,9 +58,9 @@ MoonBit 应用接入订阅内容时，需要面对不同的 XML 与 JSON 结构�
 
 - 仓库：[https://github.com/jojochensmart-lab/moonfeed](https://github.com/jojochensmart-lab/moonfeed)
 - 最低工具链：MoonBit v0.10.14；本地使用项目内 v0.10.14，CI 使用官方 latest 并打印实际版本。
-- 本轮新增 1 项 namespace URI 组件测试，当前预期总数 138；默认与 JS 结果及对应 CI 运行以最终提交后的实际输出为准。
+- 本轮新增 1 项 namespace URI 组件测试，当前总数 138；默认与 JS 目标均为 138/138。CI 对提交 687123f 的运行 39703833171 为 success，check/test/build、示例和 CLI smoke 全部通过。
 - CI 检查 `moon check`、`moon test`、`moon build`、两个示例和 CLI smoke。历史 CI 只证明其对应提交，不替代本轮最新 HEAD 的运行。
-- Mooncakes `0.1.2` 已发布，但不含 Git main 上的 Atom 文档 API 和本轮 namespace URI 修复；`0.2.0` 仅为发布候选，需完成 main CI、包清单审阅、发布和全新 registry 安装调用后才可标成已发布。
+- Mooncakes 0.2.0 已发布并由全新 registry 项目安装；旧版 0.1.2 不含 Atom 文档 API 和本轮 namespace URI 修复。Registry 归档 README 仍含发布前候选措辞；GitHub main README 已改为正式安装说明。元数据与代码包正确，本轮不因这处 README 快照差异立即发布补丁版本。
 - 原有 117 项测试保留，规范测试从 20 项增至 21 项；这些独立测试不是官方完整认证套件。
 
 ## 下一阶段计划

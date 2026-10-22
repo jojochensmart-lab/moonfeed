@@ -57,4 +57,8 @@ https://example.org/article
 
 发布预审发现未跟踪的 `申报书.md` 会进入默认 Mooncakes 包清单。新增 `.moonignore` 沿用项目构建输出排除项，并显式排除该本地材料；发布前重新审阅包清单，确认其中没有申报书原件或联系方式。申报书原件 SHA-256 在编辑前核验，姓名和联系方式只在本地报名文件保留。
 
-本轮验证基于 main 提交及 138 项默认/JS 行为测试。最终版本号、CI、Mooncakes 页面和新项目安装结果以本轮提交后的实际远端证据为准；此前发布的 0.1.2 不包含 Atom 文档 API。
+本轮提交 `687123f` 的默认/JS 测试均为 138/138，GitHub Actions run 39703833171 success。Mooncakes 已正式发布 `joanna/moonfeed@0.2.0`，旧版 0.1.2 不含 Atom 文档 API；registry 新项目安装并运行 JSON/RSS/Atom Feed/独立 Entry、detect 和 date smoke 均通过。
+
+## Mooncakes README 快照
+
+0.2.0 registry 元数据（module/version/license/repository/description）与精确依赖安装正常，包内 Atom document API 已实际调用。由于要求先通过全新安装再更新 README，已发布 archive 中保留了发布前的候选版本措辞；GitHub main README 已更正。此项是归档说明文字的时间差，不影响 API 或 metadata；本轮按不因小型 README 快照问题立即发补丁版的既定原则记录并停止。

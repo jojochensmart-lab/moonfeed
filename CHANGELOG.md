@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-22
 
 - Validate Atom namespace URI-reference scheme and authority structure, userinfo/port syntax, bracket placement and escape boundaries; keep exact URI spelling and relative namespace support. Add targeted positive/negative vectors (138 tests total).
 - Add `.moonignore` so the local untracked application form, including contact details, is excluded from Mooncakes archives.
-- Prepare the additive Atom document API and standards audit for the 0.2.0 minor-release candidate; publication remains contingent on CI and clean registry-install verification.
+- Publish additive Atom document APIs as 0.2.0 after CI and clean registry-install verification.
 
 - Validate RFC3066 language-tag syntax in strict Atom document APIs, preserving inheritance, overrides, empty XML reset and legacy API behavior.
 - Normalize physical XML line endings and literal attribute whitespace separately from character references; validate declaration syntax/order/strict placement and XML names; skip general processing instructions.

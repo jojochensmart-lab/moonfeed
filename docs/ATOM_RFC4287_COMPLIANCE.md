@@ -4,7 +4,7 @@ The final target is parsing and semantic processing of both RFC 4287 Feed Docume
 
 ## API scope and compatibility
 
-The matrix applies to the new parse_atom_document and parse_atom_document_with_base APIs on Git main. They validate the implemented normative rules and return an AtomDocument with distinct FeedDocument and EntryDocument variants. They preserve Atom-specific metadata and an expanded-name XML tree. They are not included in the already published 0.1.2; this work prepares candidate 0.2.0 pending release gates.
+The matrix applies to the new parse_atom_document and parse_atom_document_with_base APIs on Git main. They validate the implemented normative rules and return an AtomDocument with distinct FeedDocument and EntryDocument variants. They preserve Atom-specific metadata and an expanded-name XML tree. They are included in the published 0.2.0; the previous 0.1.2 does not include these APIs. A fresh registry project installed and called the exact 0.2.0 module.
 
 The existing parse_atom and unified parse APIs retain their Feed return types and historical common-field normalization behavior. They are not full RFC validators, do not accept an Entry root as a synthetic Feed, and can accept legacy inputs that the document API rejects. All 117 baseline tests remain unchanged; 21 independent conformance tests are present after the final namespace URI vectors. See [API compatibility](API_COMPATIBILITY.md). Applications requiring the validation and metadata audited below should migrate to the document API; see README. This deliberate compatibility boundary must not be mistaken for full standards validation across all entry points.
 

@@ -60,4 +60,8 @@ Atom Publishing Protocol、完整 XML Schema 验证器、C14N、通用 XML 工�
 
 可直接复用的最新申报稿位于 [HACKATHON_RESUBMISSION_FINAL.md](HACKATHON_RESUBMISSION_FINAL.md)。本轮修正 namespace URI-reference 结构校验并新增正反向量；A03 仍为 PARTIAL，RFC 矩阵仍是 19 PASS / 8 PARTIAL / 0 FAIL，不宣称完整 RFC 4287 兼容。闰秒公告状态截至本日核验，详细缺口和测试证据见 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md) 与 [第四轮审计](ATOM_ROUND3_AUDIT.md)。
 
-Mooncakes 已发布版本仍为 0.1.2，它不含 Atom document API；本轮 0.2.0 只是候选，直到新提交 CI、publish、全新安装及 JSON/RSS/Atom Feed/独立 Entry smoke 全部实证通过后才更新为已发布状态。CI 与 registry 链接将在闭环后补入，不用历史状态替代最新证据。
+Mooncakes `0.2.0` 已发布，包含 Atom document API。新项目通过 registry 安装到精确版本，并完成 check/build 与 JSON/RSS/Atom Feed/Entry smoke。最新 CI 与 registry 证据见下方。
+
+## 发布页 README 快照说明
+
+joanna/moonfeed@0.2.0 registry 元数据和新项目安装均已确认正确；该版本归档中的 README 是安装验证之前制作的快照，仍包含“0.2.0 待闭环”的旧措辞。GitHub main README 已在验证成功后更新为正式 moon add joanna/moonfeed 安装说明。此问题限于 README 快照；不影响包代码、metadata 或实际安装。本轮不立即发布新的补丁版本，避免仅为 README 快照追加发布。
