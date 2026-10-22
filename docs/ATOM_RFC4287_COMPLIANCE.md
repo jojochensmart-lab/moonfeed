@@ -4,9 +4,9 @@ The final target is parsing and semantic processing of both RFC 4287 Feed Docume
 
 ## API scope and compatibility
 
-The matrix applies to the new parse_atom_document and parse_atom_document_with_base APIs on Git main. They validate the implemented normative rules and return an AtomDocument with distinct FeedDocument and EntryDocument variants. They preserve Atom-specific metadata and an expanded-name XML tree. They have not been published to Mooncakes.
+The matrix applies to the new parse_atom_document and parse_atom_document_with_base APIs on Git main. They validate the implemented normative rules and return an AtomDocument with distinct FeedDocument and EntryDocument variants. They preserve Atom-specific metadata and an expanded-name XML tree. They are not included in the already published 0.1.2; this work prepares candidate 0.2.0 pending release gates.
 
-The existing parse_atom and unified parse APIs retain their Feed return types and historical common-field normalization behavior. They are not full RFC validators, do not accept an Entry root as a synthetic Feed, and can accept legacy inputs that the document API rejects. All 117 baseline tests remain unchanged; 20 independent conformance tests are added in this round. See [API compatibility](API_COMPATIBILITY.md). Applications requiring the validation and metadata audited below should migrate to the document API; see README. This deliberate compatibility boundary must not be mistaken for full standards validation across all entry points.
+The existing parse_atom and unified parse APIs retain their Feed return types and historical common-field normalization behavior. They are not full RFC validators, do not accept an Entry root as a synthetic Feed, and can accept legacy inputs that the document API rejects. All 117 baseline tests remain unchanged; 21 independent conformance tests are present after the final namespace URI vectors. See [API compatibility](API_COMPATIBILITY.md). Applications requiring the validation and metadata audited below should migrate to the document API; see README. This deliberate compatibility boundary must not be mistaken for full standards validation across all entry points.
 
 References: [RFC 4287](https://www.rfc-editor.org/rfc/rfc4287), [Namespaces in XML 1.0](https://www.w3.org/TR/xml-names/), [XML Base second edition](https://www.w3.org/TR/xmlbase/), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986), [RFC 3987](https://www.rfc-editor.org/rfc/rfc3987), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339).
 
@@ -18,7 +18,7 @@ Tests below are in atom_document_test.mbt unless a different path is named. A ro
 | --- | --- | --- | --- |
 | A01 / RFC 4287 §§1.2–1.3 | Identify Atom by namespace URI and local name, independent of prefix spelling. | PASS | strict Atom Entry arbitrary prefix is equivalent and foreign roots fail; strict Atom Unicode QName prefixes and XML character errors; original namespace equivalence tests. |
 | A02 / W3C Namespaces §§3–6 | Scope/rebind prefixes, reset defaults, reserve xml/xmlns, distinguish unprefixed attributes, reject duplicate expanded attributes. | PASS | Original src/xmlmini/reader_test.mbt namespace scope, attribute and reserved-binding tests; supplementary Unicode prefix test. |
-| A03 / W3C Namespaces §3 | Validate namespace declaration URI-reference lexical rules in all cases. | PARTIAL | `src/xmlmini/namespace_uri.mbt` now rejects invalid characters, whitespace, percent escapes and multiple fragments. Conformance namespace identity/lexical tests prove exact comparison after XML attribute decoding, without URL normalization. Complete authority and scheme/path grammar validation remains incomplete. |
+| A03 / W3C Namespaces §3 | Validate namespace declaration URI-reference lexical rules in all cases. | PARTIAL | `src/xmlmini/namespace_uri.mbt` now checks ASCII URI-reference characters and escapes, scheme syntax, relative first-segment colons, authority/userinfo/host/port structure, and bracket placement. Positive and negative conformance vectors cover schemes, relative references, authority, query/fragment, percent escapes and malformed delimiters. Namespace identity remains exact after XML attribute decoding, without URL normalization. Full IP-literal validation and every URI path production remain incomplete. |
 | A04 / RFC 4287 §2 | Represent both Feed Document and standalone Entry Document roots without inventing a feed. | PASS | strict Atom Feed and Entry Documents keep distinct root variants; standalone Entry metadata/content test; examples/atom. |
 | A05 / RFC 4287 §2, XML 1.0 | Consume all legal XML 1.0 Atom serializations and enforce complete well-formedness. | PARTIAL | `src/xmlmini/reader.mbt` handles XML 1.0 line endings, CDATA/text references, literal attribute whitespace, names, declaration syntax/order/position and general PI skipping. Conformance XML declaration/normalization/PI/malformed tests assert values and errors. DTD/internal declared entities and DTD-based attribute defaults/types remain unsupported; complete XML well-formedness coverage is not claimed. No C14N or schema validator is required. |
 | A06 / RFC 4287 §2, XML Base §§3–4 | Inherit/override per-element bases; use retrieval URI; handle empty and fragment bases; preserve original references. | PASS | XML Base nesting resolves links persons generator and content src; retrieval URI and sibling scope restoration; same document references empty base and LEIRI spaces. IDs remain unchanged. |
@@ -68,7 +68,7 @@ Paths above are relative to src/ unless they identify a test or example. Some PA
 
 ## Reproduction and compatibility boundary
 
-Run moon check, moon test, moon build and moon run examples/atom with MoonBit >= v0.10.14. The current local result is 137/137 on both default and JS targets: the original 117 baseline tests plus 20 independent conformance tests. Test fixtures and reproduction details are in [fixtures/atom/conformance](../fixtures/atom/conformance/README.md). The Atom example verifies equivalent default/prefixed standalone Entry Documents and prints:
+Run moon check, moon test, moon build and moon run examples/atom with MoonBit >= v0.10.14. The current local result is 138/138 on both default and JS targets: the original 117 baseline tests plus 21 independent conformance tests. Test fixtures and reproduction details are in [fixtures/atom/conformance](../fixtures/atom/conformance/README.md). The Atom example verifies equivalent default/prefixed standalone Entry Documents and prints:
 
 ~~~text
 Equivalent Entry Documents: PASS
@@ -81,7 +81,7 @@ The IANA/IERS leap-transition data is [public domain](https://data.iana.org/time
 
 ## Remaining work before an unqualified full-conformance claim
 
-1. Complete the Atom-relevant XML 1.0/namespace lexical and normalization behavior; validate with external XML conformance vectors.
+1. Complete the remaining XML 1.0 document/DTD behavior and full RFC 3986 IP-literal/URI component validation; validate with external XML and URI conformance vectors.
 2. Complete remaining LEIRI/namespace-URI/email/MIME productions and registered-parameter link comparison rules, keeping MUST/SHOULD distinctions and extension tolerance.
 3. Expand independent normative fixtures, automate leap-table maintenance, and decide a versioned migration policy for strict validation on legacy normalization entry points.
 

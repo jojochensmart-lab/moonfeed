@@ -178,10 +178,10 @@ test "conformance namespace identity is literal after XML entity decoding" {
     uri in [
       "HTTP://www.w3.org/2005/Atom", "http://www.w3.org/2005/%41tom", "http://www.w3.org/2005/./Atom",
     ] {
-    assert_true(
-      conform_error("<entry xmlns='" + uri + "'>" + body + "</entry>")
-      is @atom.InvalidAtomRoot(_),
-    )
+    let error = conform_error("<entry xmlns='" + uri + "'>" + body + "</entry>")
+    if !(error is @atom.InvalidAtomRoot(_)) {
+      fail(uri)
+    }
   }
 }
 
@@ -385,4 +385,29 @@ test "conformance shared XML normalization retains RSS behavior and text entitie
     ),
   )
   assert_eq(e.content.unwrap().value, "Text")
+}
+
+///|
+test "conformance namespace URI reference component grammar" {
+  for
+    uri in [
+      "urn:example:feed", "https://example.org/ns?q=a/b#part", "../relative/ns",
+      "//example.org/ns", "https://user:pass@example.org:443/ns", "http://[2001:db8::1]/ns",
+    ] {
+    let e = conform_entry(
+      @conformance.entry("xmlns:e='" + uri + "' e:child='ok'", "<content/>"),
+    )
+    assert_eq(e.metadata.raw.attributes.length(), 1)
+  }
+  for
+    uri in [
+      "1invalid:scheme", "urn:bad[bracket", "urn:bad]bracket", "//example.org:abc/ns",
+      "//example.org/[path]", "//user@@example.org/ns", "http://example.org:8x/ns",
+      "urn:bad?q=[x]", "urn:bad#frag[x]",
+    ] {
+    assert_true(
+      conform_error(@conformance.entry("xmlns:e='" + uri + "'", "<content/>"))
+      is @atom.InvalidXml(_),
+    )
+  }
 }

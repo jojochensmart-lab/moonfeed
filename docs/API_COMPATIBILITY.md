@@ -17,8 +17,6 @@
 
 可运行迁移例为 `moon run examples/atom`。日期精确身份使用 AtomDate.raw、fractional_digits、leap_second；Unix 秒只表示 POSIX 时间。
 
-## 发布策略（提议，尚未执行）
+## 发布版本评估
 
-Mooncakes 当前已发布 0.1.2 不含文档 API 和本轮修复。Git main 是评审这些更改的源码来源。本轮不修改 module/version，不发布。
-
-下一次经单独确认的发布建议作为新增 API 的 minor 版本评估，推荐严格文档入口，同时保留原入口和返回模型。不能把 Git main 的 API 写成 0.1.2 已提供。若未来要默认启用严格校验，应另行评估版本兼容、提供迁移说明及过渡策略；本轮不改变旧入口的默认契约。
+Mooncakes registry 中最新已发布版本为 `0.1.2`，其中不含 Atom document API。新 API 增加独立 Feed/Entry 结果类型并保留原有 `parse` / `parse_atom` 签名和返回类型；共享 namespace reader 对非法 URI-reference 输入的拒绝属于解析错误收紧。根包接口无 breaking change，因此评估使用递增 minor 版本 `0.2.0`。候选版本只有在 main CI 通过、归档内容审阅、发布成功和全新项目安装 smoke 全通过后才标记为正式发布。未来若改变旧 parser 的宽松行为，须单独评估兼容性和迁移策略。

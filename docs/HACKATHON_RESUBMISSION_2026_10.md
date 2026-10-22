@@ -32,7 +32,7 @@ RSS enclosure 及已有 Apple Podcasts/iTunes 核心元数据可用于列出节�
 - XML reader 正确区分物理行尾、字面属性空白与字符引用，验证 XML 声明字段/顺序/严格位置和名称，跳过一般处理指令，保持 namespace 字符串身份。
 - IRI 增加 IPv6、嵌入 IPv4、IPvFuture 和 Unicode/private-use 上下文校验；继续按 RFC3986 组件算法处理相对引用。
 - MIME 支持注释、折行、quoted 参数、参数顺序及大小写规则；未知参数值保留大小写和意义。修复带注释 text MIME 被错误当作 binary、进而要求 summary 的问题。email 增加非法折行诊断。
-- 原有 117 个测试未修改或删除，新增 20 个独立规范测试。默认目标和 JS 均为 137/137，check/build 无警告，无依赖，两个现有示例与 CLI detect/inspect/normalize smoke 通过。
+- 原有 117 个测试未修改或删除，新增 21 个独立规范测试。默认目标和 JS 均为 138/138，check/build 无警告，无依赖，两个现有示例与 CLI detect/inspect/normalize smoke 通过。
 
 本轮实现 CI：[8dd897c 的运行](https://github.com/jojochensmart-lab/moonfeed/actions/runs/39628836015) 已 success，check、137 tests、build、两个示例和 CLI smoke 均通过。后续文档提交的最终验收可从 [main 的 Actions](https://github.com/jojochensmart-lab/moonfeed/actions/workflows/ci.yml?query=branch%3Amain) 查看。不得用不同 HEAD 的失败/成功结果替代对应代码的验证。
 
@@ -55,3 +55,9 @@ Atom Publishing Protocol、完整 XML Schema 验证器、C14N、通用 XML 工�
 - 本地最低工具链为 MoonBit v0.10.14；运行 moon check / moon test / moon test --target js / moon build / moon tree，独立测试可运行 moon test --filter 'conformance*'。
 - [Mooncakes joanna/moonfeed@0.1.2](https://mooncakes.io/docs/joanna/moonfeed@0.1.2) 是已有发布记录对应版本，**不包含前两轮和本轮新增的 Atom 文档 API/标准修复**。评审本轮应使用上述 Git 提交。发布状态沿用已有发布验收记录；本轮未发布、未改版本，也未重新执行 registry 安装，不以源码整改冒充新发布验收。
 - 本材料另行创建，原有未跟踪的申报书.md 保持原样且未纳入提交。
+
+## 最终交付材料与第四轮复核（2026-10-22）
+
+可直接复用的最新申报稿位于 [HACKATHON_RESUBMISSION_FINAL.md](HACKATHON_RESUBMISSION_FINAL.md)。本轮修正 namespace URI-reference 结构校验并新增正反向量；A03 仍为 PARTIAL，RFC 矩阵仍是 19 PASS / 8 PARTIAL / 0 FAIL，不宣称完整 RFC 4287 兼容。闰秒公告状态截至本日核验，详细缺口和测试证据见 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md) 与 [第四轮审计](ATOM_ROUND3_AUDIT.md)。
+
+Mooncakes 已发布版本仍为 0.1.2，它不含 Atom document API；本轮 0.2.0 只是候选，直到新提交 CI、publish、全新安装及 JSON/RSS/Atom Feed/独立 Entry smoke 全部实证通过后才更新为已发布状态。CI 与 registry 链接将在闭环后补入，不用历史状态替代最新证据。

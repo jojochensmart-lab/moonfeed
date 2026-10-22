@@ -19,3 +19,11 @@
 ## 独立验证边界
 
 原 117 个测试文件不修改。新增 `atom_conformance_test.mbt` 和 `fixtures/atom/conformance/`，分别存放断言与可审阅输入。测试依据公开规范而非另一个实现的输出；没有宣称这是 W3C 官方完整测试套件，也没有获得第三方认证。C14N、XML Schema、AtomPub、签名验证和网络下载不属于本轮解析职责。
+
+## 第四轮复核（2026-10-22）
+
+A03 的原实现仅检查 URI-reference 中的字符、百分号和 fragment 数量，未检查 scheme、authority 结构或方括号所在组件。`src/xmlmini/namespace_uri.mbt` 现新增 URI-reference 结构检查，拒绝非法 scheme、相对首路径段冒号、非法 userinfo/port、错误 bracket 位置和格式错误的百分号转义；新用例覆盖有效绝对/相对/authority/query/fragment 及对应坏输入。有效 URI 仍按原始字符串比较，不执行 URL normalization。由于 IPv6/IPvFuture host 的完整语法和 RFC 3986 path productions 尚未独立验证，A03 保持 PARTIAL。
+
+没有新的负闰秒公告；IERS Bulletin C 72（2026-07-06）说明 2026 年 12 月不加入闰秒，UTC-TAI 自 2017-01-01 起仍为 -37 秒。数据截至日期与未来策略已在最终申报材料中注明，运行时不联网更新闰秒表。
+
+另发现 package archive 默认会纳入本地未跟踪 `申报书.md`。根 `.moonignore` 已显式排除此文件并继承构建输出排除项；以 `moon package --list` 实际复核，申报书不再出现。

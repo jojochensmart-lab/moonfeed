@@ -39,7 +39,7 @@ https://example.org/article
 
 第二阶段矩阵为 18 PASS、8 PARTIAL、1 FAIL；第三轮后的当前结果及剩余项见下文。既有统一模型入口仍保留历史兼容行为，迁移策略已经另行记录。
 
-后续按上述顺序完善代码和独立规范向量，每项只有实现且有测试后才调整状态。当前材料足以证明本轮实质整改和明确路线，尚不能据此宣称完整 RFC 4287 兼容或保证重新审核通过。本阶段未发布 Mooncakes，Git main 的新增 API 尚不在已发布 0.1.2 中。
+后续按上述顺序完善代码和独立规范向量，每项只有实现且有测试后才调整状态。当前材料足以证明本轮实质整改和明确路线，尚不能据此宣称完整 RFC 4287 兼容或保证重新审核通过。第三轮完成时尚未发布 Mooncakes；现有 registry 0.1.2 仍不含 Git main 新增 API，本轮候选版本另行核验。
 
 ## 第三轮：语言与 XML / IRI / MIME 边界
 
@@ -50,3 +50,11 @@ https://example.org/article
 当前矩阵为 **19 PASS、8 PARTIAL、0 FAIL**。完整 namespace URI/LEIRI、DTD/internal entity 等 XML 边界、历史 email/MIME productions、注册参数等价规则、闰秒维护与完整诊断覆盖仍待闭环。不能宣称完整 RFC4287 兼容。[九项审计](ATOM_ROUND3_AUDIT.md) 逐项记录原缺口、规范、代码、测试、修复和风险。
 
 [API_COMPATIBILITY](API_COMPATIBILITY.md) 说明旧入口保留宽松统一模型，新文档入口执行已实现的严格规则；版本未改，未执行 Mooncakes 发布。新建 [重新申报材料](HACKATHON_RESUBMISSION_2026_10.md)，包含三类实际应用场景、初审逐项回应、提交/CI/测试证据和明确剩余计划。原申报书.md 的 SHA256 保持 9018ED564BF0CDCB3F32028ADF415592E30A7489FD0B9B30218441FF8EBE5AEF，未修改或提交。
+
+## 最终交付复核：namespace URI-reference 与发布防护
+
+第四轮复核针对 A03 增加 URI-reference 结构校验：检查 scheme 语法、相对首路径段冒号、authority 的 userinfo/host/port 布局、百分号转义和方括号位置，并以正反输入断言验证。namespace 名仍按 XML 属性实体解码后的原字符串精确比较，不做 URL 大小写、百分号或点路径规范化。由于完整 IP-literal 与所有 URI path productions 尚未覆盖，A03 仍标为 PARTIAL，不宣称完整 namespace URI 词法兼容。
+
+发布预审发现未跟踪的 `申报书.md` 会进入默认 Mooncakes 包清单。新增 `.moonignore` 沿用项目构建输出排除项，并显式排除该本地材料；发布前重新审阅包清单，确认其中没有申报书原件或联系方式。申报书原件 SHA-256 在编辑前核验，姓名和联系方式只在本地报名文件保留。
+
+本轮验证基于 main 提交及 138 项默认/JS 行为测试。最终版本号、CI、Mooncakes 页面和新项目安装结果以本轮提交后的实际远端证据为准；此前发布的 0.1.2 不包含 Atom 文档 API。

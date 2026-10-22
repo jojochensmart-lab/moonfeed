@@ -2,11 +2,15 @@
 
 ## Unreleased
 
+- Validate Atom namespace URI-reference scheme and authority structure, userinfo/port syntax, bracket placement and escape boundaries; keep exact URI spelling and relative namespace support. Add targeted positive/negative vectors (138 tests total).
+- Add `.moonignore` so the local untracked application form, including contact details, is excluded from Mooncakes archives.
+- Prepare the additive Atom document API and standards audit for the 0.2.0 minor-release candidate; publication remains contingent on CI and clean registry-install verification.
+
 - Validate RFC3066 language-tag syntax in strict Atom document APIs, preserving inheritance, overrides, empty XML reset and legacy API behavior.
 - Normalize physical XML line endings and literal attribute whitespace separately from character references; validate declaration syntax/order/strict placement and XML names; skip general processing instructions.
 - Validate IPv6/IPvFuture and RFC3987 Unicode/private-use ranges; reject malformed namespace-reference characters without normalizing namespace identity.
 - Parse MIME comments/folding/quoted parameters, compare alternate link types/languages without dropping meaningful parameters, and fix summary classification for commented text MIME types; diagnose malformed email folding.
-- Add 20 independent conformance tests (137 total), an API migration policy, nine-row gap audit and October resubmission materials. No version change or Mooncakes publication.
+- Third-round baseline: add 20 independent conformance tests (137 total), an API migration policy, nine-row gap audit and October resubmission materials. No version change or Mooncakes publication at that stage.
 
 - Add Atom Feed/Entry document APIs with distinct public result types and retained source, people, links, categories, rights, generator, content and expanded-name extension metadata. Existing normalization signatures remain unchanged.
 - Add XML Base scope and RFC 3986 reference resolution, retaining original and resolved references and a caller-supplied retrieval base.
