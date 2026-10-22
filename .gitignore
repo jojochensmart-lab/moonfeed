@@ -3,4 +3,5 @@ _build/
 target/
 target
 .mooncakes/
-.moonagent//申报书.md
+.moonagent/
+/申报书.md
