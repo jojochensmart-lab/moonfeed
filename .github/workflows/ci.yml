@@ -23,12 +23,18 @@ jobs:
           core-version: 'latest'
       - name: Toolchain versions
         run: moon version --all
+      - name: Formatting
+        run: moon fmt --check
       - name: Check
         run: moon check
       - name: Test
         run: moon test
       - name: Build
         run: moon build
+      - name: JavaScript target
+        run: |
+          moon test --target js
+          moon build --target js
       - name: Run example
         run: |
           moon run examples/basic
