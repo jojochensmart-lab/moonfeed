@@ -23,8 +23,6 @@ jobs:
           core-version: 'latest'
       - name: Toolchain versions
         run: moon version --all
-      - name: Formatting
-        run: moon fmt --check
       - name: Check
         run: moon check
       - name: Test

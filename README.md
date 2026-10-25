@@ -242,7 +242,7 @@ moon build --target js
 moon tree
 ```
 
-当前共有 138 个行为测试：原有 117 项保持不变，新增 21 项独立规范测试，覆盖语言、XML 声明/规范化、namespace、IRI、MIME/email 和 API 兼容边界。默认与 JS 目标均有 CI 验证，格式检查、构建、示例和 CLI smoke 也纳入 GitHub Actions。Atom 文档、XML Base、结构/作者/内容约束、日期及 RFC 正式向量测试均保留；RSS、JSON Feed、日期及 CLI 回归也保持通过。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
+当前共有 138 个行为测试：原有 117 项保持不变，新增 21 项独立规范测试，覆盖语言、XML 声明/规范化、namespace、IRI、MIME/email 和 API 兼容边界。默认与 JS 目标均有 CI 验证，CI 还运行构建、示例和 CLI smoke；开发者可在本地执行 `moon fmt --check` 检查格式。Atom 文档、XML Base、结构/作者/内容约束、日期及 RFC 正式向量测试均保留；RSS、JSON Feed、日期及 CLI 回归也保持通过。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
 
 黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，重新申报草稿见 [十月重新申报材料](docs/HACKATHON_RESUBMISSION_2026_10.md)。矩阵当前为 19 PASS / 8 PARTIAL / 0 FAIL；A03 新增 URI-reference 组件校验和边界向量，但仍保留 PARTIAL；仍不宣称完整 RFC 4287 兼容。
 
