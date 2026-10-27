@@ -69,7 +69,7 @@ https://example.org/article
 
 XML 子集 reader 对所有 DOCTYPE 明确报错，不解析内部/外部子集、声明实体或 DTD 默认属性；这项边界和安全取舍记录于 [XML 解析范围](XML_PARSING_SCOPE.md)。该策略没有实现 RFC 所需的完整 XML 1.0/DTD 处理，A05 仍为 PARTIAL。
 
-本轮默认与 JS 目标各 141 项测试通过；其中原 117 项保持不变，22 项为 Atom 独立规范向量，另有 XML Base 与闰秒边界回归。完整结果与最新 CI 对应提交将在该提交推送后补记。当前矩阵为 **23 PASS、4 PARTIAL、0 FAIL**；A05、A20、A23、A27 仍为 PARTIAL，完整 RFC 4287 兼容声明仍不成立。
+本轮默认与 JS 目标各 141 项测试通过；其中原 117 项保持不变，22 项为 Atom 独立规范向量，另有 XML Base 与闰秒边界回归。提交 `1b7eb3c` 对应的 [GitHub Actions run 40494071138](https://github.com/jojochensmart-lab/moonfeed/actions/runs/40494071138) 使用 MoonBit `0.1.20261023` / `moonc v0.10.17+d971670cd`，check、141 tests、build、JS target、example 和 CLI smoke 全部成功。当前矩阵为 **23 PASS、4 PARTIAL、0 FAIL**；A05、A20、A23、A27 仍为 PARTIAL，完整 RFC 4287 兼容声明仍不成立。
 
 ## Mooncakes README 快照
 

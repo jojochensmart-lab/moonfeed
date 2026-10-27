@@ -58,7 +58,7 @@ Atom Publishing Protocol、完整 XML Schema 验证器、C14N、通用 XML 工�
 
 ## 最终交付材料与第四轮复核（2026-10-22）
 
-本地最新申报稿不纳入公开仓库，因为原件含报名个人信息。第四轮之后，本轮补齐 namespace URI 的 IP-literal 校验、RFC 3987 IRI 各组件字符规则及 RFC 2822 obsolete addr-spec 实例；A03、A08、A13 和闰秒公告 A15 均为 PASS。默认和 JS 测试均为 141/141。当前矩阵为 23 PASS / 4 PARTIAL / 0 FAIL；A05、A20、A23、A27 仍未闭环，项目不宣称完整 RFC 4287 兼容。详细证据见 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md)、[闰秒维护流程](LEAP_SECONDS.md) 与 [XML 解析范围](XML_PARSING_SCOPE.md)。
+本地最新申报稿不纳入公开仓库，因为原件含报名个人信息。第四轮之后，本轮补齐 namespace URI 的 IP-literal 校验、RFC 3987 IRI 各组件字符规则及 RFC 2822 obsolete addr-spec 实例；A03、A08、A13 和闰秒公告 A15 均为 PASS。默认和 JS 测试均为 141/141。[提交 1b7eb3c 的 GitHub Actions](https://github.com/jojochensmart-lab/moonfeed/actions/runs/40494071138) 使用 MoonBit `v0.10.17+d971670cd`，check/test/build、JS、example、CLI smoke 均通过。当前矩阵为 23 PASS / 4 PARTIAL / 0 FAIL；A05、A20、A23、A27 仍未闭环，项目不宣称完整 RFC 4287 兼容。详细证据见 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md)、[闰秒维护流程](LEAP_SECONDS.md) 与 [XML 解析范围](XML_PARSING_SCOPE.md)。
 
 Mooncakes `0.2.0` 已发布，包含 Atom document API。新项目通过 registry 安装到精确版本，并完成 check/build 与 JSON/RSS/Atom Feed/Entry smoke。最新 CI 与 registry 证据见下方。
 
