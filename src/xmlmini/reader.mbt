@@ -15,6 +15,18 @@ pub enum XmlEvent {
 }
 
 ///|
+priv enum DtdEntity {
+  Internal(String)
+  External
+}
+
+///|
+let max_general_entity_depth = 32
+
+///|
+let max_general_entity_value_chars = 1_048_576
+
+///|
 pub(all) suberror XmlError {
   Malformed(String)
 }
@@ -34,6 +46,10 @@ pub struct Reader {
   chars : Array[Char]
   mut pos : Int
   tags : Array[String]
+  priv mut entities : Map[String, DtdEntity]
+  priv mut attribute_declarations : Map[String, Map[String, XmlAttributeDecl]]
+  priv mut doctype_seen : Bool
+  priv mut document_element_seen : Bool
   strict_declaration : Bool
 }
 
@@ -327,7 +343,16 @@ pub fn Reader::from_string(
     }
     i += 1
   }
-  { chars, pos: 0, tags: [], strict_declaration, }
+  {
+    chars,
+    pos: 0,
+    tags: [],
+    entities: Map([]),
+    attribute_declarations: Map([]),
+    doctype_seen: false,
+    document_element_seen: false,
+    strict_declaration,
+  }
 }
 
 ///|
@@ -462,13 +487,19 @@ fn numeric(s : String) -> Char raise XmlError {
 }
 
 ///|
-fn decode(s : String) -> String raise XmlError {
+fn decode_xml_value(
+  s : String,
+  entities : Map[String, DtdEntity],
+  chain : Array[String],
+) -> String raise XmlError {
   let a = s.to_array()
   let b = StringBuilder()
+  let mut output_chars = 0
   let mut i = 0
   while i < a.length() {
     if a[i] != '&' {
       b.write_char(a[i])
+      output_chars += 1
       i += 1
     } else {
       let start = i + 1
@@ -484,18 +515,141 @@ fn decode(s : String) -> String raise XmlError {
         e.write_char(a[j])
       }
       match e.to_string() {
-        "amp" => b.write_char('&')
-        "lt" => b.write_char('<')
-        "gt" => b.write_char('>')
-        "quot" => b.write_char('"')
-        "apos" => b.write_char('\'')
-        x if x.has_prefix("#") => b.write_char(numeric(x[1:].to_owned()))
-        _ => raise Malformed("unsupported entity")
+        "amp" => {
+          b.write_char('&')
+          output_chars += 1
+        }
+        "lt" => {
+          b.write_char('<')
+          output_chars += 1
+        }
+        "gt" => {
+          b.write_char('>')
+          output_chars += 1
+        }
+        "quot" => {
+          b.write_char('"')
+          output_chars += 1
+        }
+        "apos" => {
+          b.write_char('\'')
+          output_chars += 1
+        }
+        x if x.has_prefix("#") => {
+          b.write_char(numeric(x[1:].to_owned()))
+          output_chars += 1
+        }
+        name =>
+          match entities.get(name) {
+            Some(Internal(value)) => {
+              if chain.any(previous => previous == name) {
+                raise Malformed("recursive general entity")
+              }
+              if chain.length() >= max_general_entity_depth {
+                raise Malformed("general entity nesting limit exceeded")
+              }
+              // The internal reader exposes text events rather than injecting
+              // DTD replacement markup into the event stream. Keep text-only
+              // entities safe and explicit until replacement markup is modeled.
+              if value.contains("<") {
+                raise Malformed("markup in a general entity is unsupported")
+              }
+              let next_chain = chain.copy()
+              next_chain.push(name)
+              let expanded = decode_xml_value(value, entities, next_chain)
+              output_chars += expanded.to_array().length()
+              if output_chars > max_general_entity_value_chars {
+                raise Malformed("general entity expansion limit exceeded")
+              }
+              b.write_string(expanded)
+            }
+            Some(External) =>
+              raise Malformed(
+                "external general entity expansion is unsupported",
+              )
+            None => raise Malformed("unsupported entity")
+          }
       }
       i += 1
     }
+    if output_chars > max_general_entity_value_chars {
+      raise Malformed("general entity expansion limit exceeded")
+    }
   }
   b.to_string()
+}
+
+///|
+fn normalize_tokenized_attribute(value : String) -> String {
+  let builder = StringBuilder()
+  let mut pending_space = false
+  let mut has_output = false
+  for ch in value.to_array() {
+    if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' {
+      if has_output {
+        pending_space = true
+      }
+    } else {
+      if pending_space {
+        builder.write_char(' ')
+        pending_space = false
+      }
+      builder.write_char(ch)
+      has_output = true
+    }
+  }
+  builder.to_string()
+}
+
+///|
+fn Reader::decode(self : Reader, value : String) -> String raise XmlError {
+  decode_xml_value(value, self.entities, [])
+}
+
+///|
+fn Reader::apply_attribute_declarations(
+  self : Reader,
+  element_name : String,
+  attributes : Map[String, String],
+) -> Map[String, String] raise XmlError {
+  match self.attribute_declarations.get(element_name) {
+    None => attributes
+    Some(declarations) => {
+      for (name, declaration) in declarations.to_array() {
+        match attributes.get(name) {
+          Some(value) if declaration.tokenized =>
+            attributes.set(name, normalize_tokenized_attribute(value))
+          Some(_) => ()
+          None =>
+            match declaration.default_value {
+              Some(raw_default) => {
+                let literal_builder = StringBuilder()
+                for ch in raw_default.to_array() {
+                  literal_builder.write_char(
+                    if ch == '\t' || ch == '\n' || ch == '\r' {
+                      ' '
+                    } else {
+                      ch
+                    },
+                  )
+                }
+                let decoded = self.decode(literal_builder.to_string())
+                attributes.set(
+                  name,
+                  if declaration.tokenized {
+                    normalize_tokenized_attribute(decoded)
+                  } else {
+                    decoded
+                  },
+                )
+              }
+              None => ()
+            }
+        }
+      }
+      attributes
+    }
+  }
 }
 
 ///|
@@ -616,7 +770,7 @@ fn Reader::text(self : Reader) -> XmlEvent raise XmlError {
   if value.contains("]]>") {
     raise Malformed("CDATA close delimiter in ordinary text")
   }
-  Text(decode(value))
+  Text(self.decode(value))
 }
 
 ///|
@@ -660,7 +814,7 @@ fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
     if m.get(k) is Some(_) {
       raise Malformed("duplicate attribute")
     }
-    m.set(k, decode(b.to_string()))
+    m.set(k, self.decode(b.to_string()))
   } nobreak {
     m
   }
@@ -670,15 +824,17 @@ fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
 fn Reader::start(self : Reader) -> XmlEvent raise XmlError {
   self.expect('<')
   let n = self.name()
-  let a = self.attrs()
+  let a = self.apply_attribute_declarations(n, self.attrs())
   self.space()
   if self.peek() is Some('/') {
     self.pos += 1
     self.expect('>')
+    self.document_element_seen = true
     Empty({ name: n, attributes: a, })
   } else {
     self.expect('>')
     self.tags.push(n)
+    self.document_element_seen = true
     Start({ name: n, attributes: a, })
   }
 }
@@ -699,11 +855,22 @@ fn Reader::finish(self : Reader) -> XmlEvent raise XmlError {
 
 ///|
 pub fn Reader::read_event(self : Reader) -> XmlEvent raise XmlError {
-  while self.starts("<!--") || self.starts("<?") {
+  while self.starts("<!--") || self.starts("<?") || self.starts("<!DOCTYPE") {
     if self.starts("<!--") {
       self.comment()
-    } else {
+    } else if self.starts("<?") {
       self.declaration()
+    } else {
+      if self.doctype_seen ||
+        self.document_element_seen ||
+        !self.tags.is_empty() {
+        raise Malformed("DOCTYPE must occur once before the document element")
+      }
+      let (next_pos, info) = parse_doctype(self.chars, self.pos)
+      self.pos = next_pos
+      self.entities = info.entities
+      self.attribute_declarations = info.attributes
+      self.doctype_seen = true
     }
   }
   if self.pos == self.chars.length() {

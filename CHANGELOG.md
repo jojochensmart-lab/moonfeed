@@ -2,12 +2,15 @@
 
 ## Unreleased
 
+- Add bounded internal DTD support for text-only general entities, `ATTLIST` default attributes, and CDATA/tokenized attribute normalization; reject recursive, external, markup, and over-budget entity expansions with XML errors.
+- Apply RFC 2046 case-insensitive parameter-value comparison for `message/external-body` access-type, permission, and mode; retain RFC 2045 case-sensitive defaults for other values.
+- Add Atom typed-error path assertions and MIME quoted-pair, DTD namespace-default, entity expansion and rejection tests; the suite now has 147 tests.
 - Share RFC 3986 IPv6/IPvFuture literal validation between namespace URI references and Atom IRI parsing; add valid/invalid authority vectors.
 - Remove the arbitrary 32-level email-comment nesting cap and cover 64 nested comments in the Atom conformance tests.
 - Validate RFC 3987 IRI characters by component, cover Unicode/private-use boundaries, and preserve extended XML Base characters during RFC 3986 resolution.
 - Add RFC 2822 obsolete local/domain and folded-address conformance vectors.
 - Record the IERS leap-second review and maintenance process; test rejection of the unannounced 2026-12-31 candidate date.
-- Clarify the internal XML reader's explicit DOCTYPE/DTD boundary and publish 141-test evidence across default and JS targets.
+- Record the remaining XML 1.0 DTD and MIME parameter boundaries; do not claim full RFC 4287 conformance.
 
 ## 0.2.0 — 2026-10-22
 

@@ -61,6 +61,7 @@ fn parse_media_type(
     raise InvalidRequiredField(path, "expected MIME type/subtype")
   }
   let (minor, after) = mime_token(a, slash + 1, path)
+  let essence = major.to_lower() + "/" + minor.to_lower()
   let mut pos = after
   let parameters : Array[(String, String)] = []
   while pos < a.length() {
@@ -104,12 +105,26 @@ fn parse_media_type(
       token
     }
     let key = name.to_lower()
-    // Charset names are case insensitive. Unknown parameter values retain case.
+    // RFC 2045 makes parameter names case-insensitive and values case-sensitive
+    // unless their governing media-type registration says otherwise. Apply the
+    // explicit charset and RFC 2046 external-body exceptions here.
+    let case_insensitive_value = key == "charset" ||
+      (
+        essence == "message/external-body" &&
+        (key == "access-type" || key == "permission" || key == "mode")
+      )
     parameters.push(
-      (key, if key == "charset" { parameter.to_lower() } else { parameter }),
+      (
+        key,
+        if case_insensitive_value {
+          parameter.to_lower()
+        } else {
+          parameter
+        },
+      ),
     )
   }
-  { essence: major.to_lower() + "/" + minor.to_lower(), parameters, }
+  { essence, parameters, }
 }
 
 ///|

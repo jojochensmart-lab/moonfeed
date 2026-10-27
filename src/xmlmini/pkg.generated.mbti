@@ -46,6 +46,7 @@ pub struct Reader {
   mut pos : Int
   tags : Array[String]
   strict_declaration : Bool
+  // private fields
 }
 pub fn Reader::from_string(String, strict_declaration? : Bool) -> Self
 pub fn Reader::read_event(Self) -> XmlEvent raise XmlError

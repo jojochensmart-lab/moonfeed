@@ -278,6 +278,12 @@ test "conformance RFC3987 component productions" {
 
 ///|
 test "conformance MIME comments folding and parameter comparison" {
+  let quoted = conform_entry(
+    @conformance.entry(
+      "", "<content type='text/plain; note=&quot;a\\;b&quot;'>Quoted</content>",
+    ),
+  )
+  assert_eq(quoted.content.unwrap().value, "Quoted")
   let e = conform_entry(
     @conformance.entry(
       "", "<content type='(note) TEXT (major) / PLAIN ; CHARSET = &quot;UTF-8&quot; (end)'>Body</content>",
@@ -302,6 +308,14 @@ test "conformance MIME comments folding and parameter comparison" {
     ),
   )
   assert_eq(folded.content.unwrap().value, "Fold")
+  assert_true(
+    conform_error(
+      @conformance.entry(
+        "", "<link href='a' type='message/external-body; access-type=URL'/><link href='b' type='message/external-body; access-type=url'/><content/>",
+      ),
+    )
+    is @atom.InvalidRequiredField("entry.link[1]", _),
+  )
 }
 
 ///|
@@ -328,6 +342,47 @@ test "conformance MIME parameter values are not discarded or universally case fo
       is @atom.InvalidRequiredField("entry.content.type", _),
     )
   }
+}
+
+///|
+test "conformance internal DTD text entities and namespace defaults reach Atom parsing" {
+  let parsed = @moonfeed.parse_atom_document(
+    "<!DOCTYPE atom:entry [<!ENTITY title 'Entry &amp; One'><!ATTLIST atom:entry xmlns:atom CDATA 'http://www.w3.org/2005/Atom'>]><atom:entry><atom:id>urn:entry:dtd</atom:id><atom:title>&title;</atom:title><atom:updated>2003-12-13T18:30:02Z</atom:updated><atom:author><atom:name>A</atom:name></atom:author><atom:content/></atom:entry>",
+  )
+  match parsed {
+    @atom.EntryDocument(entry) => {
+      assert_eq(entry.metadata.id, Some("urn:entry:dtd"))
+      assert_eq(entry.metadata.title.unwrap().value, "Entry & One")
+      assert_eq(entry.content.unwrap().value, "")
+    }
+    _ => fail("expected standalone Entry Document")
+  }
+  assert_true(
+    conform_error(
+      "<!DOCTYPE atom:entry [<!ENTITY bad '<x/>'><!ATTLIST atom:entry xmlns:atom CDATA 'http://www.w3.org/2005/Atom'>]><atom:entry><atom:id>urn:entry:bad</atom:id><atom:title>Bad</atom:title><atom:updated>2003-12-13T18:30:02Z</atom:updated><atom:author><atom:name>A</atom:name></atom:author><atom:content>&bad;</atom:content></atom:entry>",
+    )
+    is @atom.InvalidXml(_),
+  )
+}
+
+///|
+test "conformance strict document errors retain typed field paths" {
+  assert_true(
+    conform_error(
+      "<entry xmlns='http://www.w3.org/2005/Atom'><title>Entry</title><updated>2003-12-13T18:30:02Z</updated><author><name>A</name></author><content/></entry>",
+    )
+    is @atom.InvalidRequiredField("entry.id", _),
+  )
+  assert_true(
+    conform_error(
+      @conformance.entry("", "<content type='text/plain; a='>Body</content>"),
+    )
+    is @atom.InvalidRequiredField("entry.content.type", _),
+  )
+  assert_true(
+    conform_error("<entry xmlns='urn:not-atom'/>")
+    is @atom.InvalidAtomRoot("entry"),
+  )
 }
 
 ///|

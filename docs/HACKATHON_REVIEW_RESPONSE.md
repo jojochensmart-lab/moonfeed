@@ -74,3 +74,11 @@ XML 子集 reader 对所有 DOCTYPE 明确报错，不解析内部/外部子集�
 ## Mooncakes README 快照
 
 0.2.0 registry 元数据（module/version/license/repository/description）与精确依赖安装正常，包内 Atom document API 已实际调用。由于要求先通过全新安装再更新 README，已发布 archive 中保留了发布前的候选版本措辞；GitHub main README 已更正。此项是归档说明文字的时间差，不影响 API 或 metadata；本轮按不因小型 README 快照问题立即发补丁版的既定原则记录并停止。
+
+## 第六阶段：DTD、MIME 与错误证据补强（2026-10-27）
+
+内部 XML reader 不再一概拒绝 `DOCTYPE`：它能处理内部 DTD 子集中的文本型通用实体、嵌套引用、`ATTLIST` 默认值，以及 CDATA/令牌化属性的 XML 空白规范化。测试覆盖默认 Atom namespace、实体值解码、递归引用、外部实体不读取、markup replacement 拒绝和 1 MiB/32 层展开上限。外部子集/实体、参数实体、markup replacement 以及完整 DTD 有效性检查仍不支持，因此 A05 保持 PARTIAL。
+
+MIME parser 按 RFC 2045 比较 media type/token 和参数名、默认保留参数值大小写；另外处理 RFC 2046 `message/external-body` 的 `access-type`、`permission` 和 `mode` 不区分大小写。新增 quoted-pair、alternate-link 重复判定和字段路径错误向量。A23 的 MIME 词法语法和 A27 的已实现规则 typed-error 路径有正反测试后调整为 PASS；A20 仍为 PARTIAL，因为不会动态加载所有媒体类型注册的参数语义。
+
+本地 `moon check` 通过、`moon test` 147/147；默认/JS 构建、示例及 CI 以本轮最终提交对应的 Actions 为准。当前矩阵为 **25 PASS、2 PARTIAL、0 FAIL**，仍不宣称完整 RFC 4287 兼容。实现范围、复现证据与剩余标准边界见 [XML 解析范围](XML_PARSING_SCOPE.md) 和 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md)。

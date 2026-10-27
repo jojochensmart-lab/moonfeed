@@ -75,6 +75,78 @@ test "xmlmini rejects malformed and mismatched XML" {
 }
 
 ///|
+test "xmlmini expands internal DTD entities and supplies declared defaults" {
+  let events = xml_events(
+    "<!DOCTYPE root [<!ENTITY greeting 'hello &amp; world'><!ENTITY nested 'said: &greeting;'><!ATTLIST root mode NMTOKENS '  one   two  ' label CDATA '&greeting;' image NOTATION (gif | jpeg) ' jpeg '>]><root>&nested;</root>",
+  )
+  match events[0] {
+    @xmlmini.Start(element) => {
+      @test.assert_eq(element.attributes.get("mode"), Some("one two"))
+      @test.assert_eq(element.attributes.get("label"), Some("hello & world"))
+      @test.assert_eq(element.attributes.get("image"), Some("jpeg"))
+    }
+    _ => assert_true(false)
+  }
+  assert_true(events[1] is @xmlmini.Text("said: hello & world"))
+  assert_true(events[2] is @xmlmini.End("root"))
+}
+
+///|
+test "xmlmini DTD defaults participate in namespace expansion without fetching external subsets" {
+  let events = namespace_events(
+    "<!DOCTYPE feed SYSTEM 'https://invalid.example/feed.dtd' [<!ATTLIST feed xmlns CDATA 'urn:atom'>]><feed><entry/></feed>",
+  )
+  match events[0] {
+    @xmlmini.NamespaceStart(element) => {
+      @test.assert_eq(element.name.namespace_uri, Some("urn:atom"))
+      @test.assert_eq(element.name.local_name, "feed")
+    }
+    _ => assert_true(false)
+  }
+  match events[1] {
+    @xmlmini.NamespaceEmpty(element) =>
+      @test.assert_eq(element.name.namespace_uri, Some("urn:atom"))
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "xmlmini rejects recursive and markup general entities and misplaced DTDs" {
+  assert_true(
+    xml_error("<!DOCTYPE x [<!ENTITY a '&b;'><!ENTITY b '&a;'>]><x>&a;</x>"),
+  )
+  assert_true(xml_error("<!DOCTYPE x [<!ENTITY a '<b/>'>]><x>&a;</x>"))
+  assert_true(xml_error("<x/><!DOCTYPE x>"))
+  assert_true(
+    xml_error("<!DOCTYPE x [<!ENTITY ext SYSTEM 'urn:external'>]><x>&ext;</x>"),
+  )
+  assert_true(xml_error("<!DOCTYPE x [<!ENTITY % p 'unused'>%p;]><x/>"))
+  assert_true(xml_error("<!DOCTYPE x [<!-- invalid -- comment -->]><x/>"))
+  assert_true(xml_error("<!DOCTYPE x [<!UNKNOWN invalid>]><x/>"))
+}
+
+///|
+test "xmlmini bounds nested internal entity expansion" {
+  let mut subset = "<!ENTITY e0 'x'>"
+  let mut previous = "e0"
+  for index = 1; index <= 21; index = index + 1 {
+    let current = "e" + index.to_string()
+    subset = subset +
+      "<!ENTITY " +
+      current +
+      " '&" +
+      previous +
+      ";&" +
+      previous +
+      ";'>"
+    previous = current
+  }
+  assert_true(
+    xml_error("<!DOCTYPE x [" + subset + "]><x>&" + previous + ";</x>"),
+  )
+}
+
+///|
 test "xmlmini skips comments between events" {
   let events = xml_events("<x><!--inside--><y/></x>")
   @test.assert_eq(events.length(), 4)

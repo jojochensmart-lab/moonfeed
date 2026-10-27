@@ -65,3 +65,9 @@ Mooncakes `0.2.0` 已发布，包含 Atom document API。新项目通过 registr
 ## 发布页 README 快照说明
 
 joanna/moonfeed@0.2.0 registry 元数据和新项目安装均已确认正确；该版本归档中的 README 是安装验证之前制作的快照，仍包含“0.2.0 待闭环”的旧措辞。GitHub main README 已在验证成功后更新为正式 moon add joanna/moonfeed 安装说明。此问题限于 README 快照；不影响包代码、metadata 或实际安装。本轮不立即发布新的补丁版本，避免仅为 README 快照追加发布。
+
+## 2026-10-27 后续标准整改进展
+
+内部 XML reader 已增加受限的内部 DTD 子集处理：支持文本型内部通用实体、嵌套引用、`ATTLIST` 默认值和 CDATA/令牌化属性规范化，并限制实体递归深度与单值展开量。外部 DTD/实体不会被读取，参数实体、实体替换标记和完整 DTD validity 仍未实现。MIME parser 增加 RFC 2046 `message/external-body` 特定参数大小写规则；完整 MIME 词法和已实现规则的 typed-error 路径有正反测试。当前 147 项测试通过，矩阵为 25 PASS / 2 PARTIAL / 0 FAIL；A05 与 A20 仍阻止完整 RFC 4287 声明。
+
+本轮最终代码 HEAD、默认与 JS 验证、GitHub Actions 结果及提交信息应以 [GitHub 最新提交](https://github.com/jojochensmart-lab/moonfeed/commits/main) 和 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md) 为准。本项目不通过文档措辞将未支持的外部 DTD 或任意 MIME registry 语义描述为已完成。
