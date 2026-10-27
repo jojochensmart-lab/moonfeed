@@ -47,7 +47,7 @@ https://example.org/article
 
 原 117 个测试没有修改或删除，另增 20 个独立规范测试；默认与 JS 均为 137/137，check/build、两个示例、CLI smoke 通过。fixtures 与断言分离，反例匹配具体错误路径。[本轮实现 CI](https://github.com/jojochensmart-lab/moonfeed/actions/runs/39628836015) 已 success，check、137 tests、build、两个示例和 CLI smoke 全部通过；最终文档 HEAD 的 CI 需另核对 main 最新运行。
 
-当前矩阵为 **19 PASS、8 PARTIAL、0 FAIL**。完整 namespace URI/LEIRI、DTD/internal entity 等 XML 边界、历史 email/MIME productions、注册参数等价规则、闰秒维护与完整诊断覆盖仍待闭环。不能宣称完整 RFC4287 兼容。[九项审计](ATOM_ROUND3_AUDIT.md) 逐项记录原缺口、规范、代码、测试、修复和风险。
+第三轮当时的矩阵为 **19 PASS、8 PARTIAL、0 FAIL**。该阶段的 namespace URI/LEIRI、DTD/internal entity 等 XML 边界、历史 email/MIME productions、注册参数等价规则、闰秒维护与完整诊断覆盖仍待闭环。不能据该阶段结果宣称完整 RFC4287 兼容。[九项审计](ATOM_ROUND3_AUDIT.md) 逐项记录原缺口、规范、代码、测试、修复和风险。
 
 [API_COMPATIBILITY](API_COMPATIBILITY.md) 说明旧入口保留宽松统一模型，新文档入口执行已实现的严格规则；版本未改，未执行 Mooncakes 发布。新建 [重新申报材料](HACKATHON_RESUBMISSION_2026_10.md)，包含三类实际应用场景、初审逐项回应、提交/CI/测试证据和明确剩余计划。原申报书.md 的 SHA256 保持 9018ED564BF0CDCB3F32028ADF415592E30A7489FD0B9B30218441FF8EBE5AEF，未修改或提交。
 
@@ -58,6 +58,18 @@ https://example.org/article
 发布预审发现未跟踪的 `申报书.md` 会进入默认 Mooncakes 包清单。新增 `.moonignore` 沿用项目构建输出排除项，并显式排除该本地材料；发布前重新审阅包清单，确认其中没有申报书原件或联系方式。申报书原件 SHA-256 在编辑前核验，姓名和联系方式只在本地报名文件保留。
 
 本轮提交 `687123f` 的默认/JS 测试均为 138/138，GitHub Actions run 39703833171 success。Mooncakes 已正式发布 `joanna/moonfeed@0.2.0`，旧版 0.1.2 不含 Atom 文档 API；registry 新项目安装并运行 JSON/RSS/Atom Feed/独立 Entry、detect 和 date smoke 均通过。
+
+## 第五轮：URI IP-literal、邮件注释与闰秒维护（2026-10-27）
+
+在第四轮基础上，将 RFC 3986 IP-literal 校验提取到 `src/xmlmini/ip_literal.mbt`，供 namespace URI 与 Atom IRI 路径共用。补充 IPv4-embedded IPv6、IPvFuture 与非法压缩组测试；namespace URI 对应的 A03 从 PARTIAL 调整为 PASS。`src/atom/iri.mbt` 现在按 scheme、userinfo、host、port、path、query、fragment 分别验证 RFC 3987 字符集合，增加 Unicode 范围与 private-use 上下文向量，并保持 XML Base 的 LEIRI 字符和组件解析行为；A08 有实现与正反测试，调整为 PASS。
+
+删除 email CFWS 注释解析器人为设置的 32 层嵌套上限，并增加 64 层注释结果断言。新增 RFC 2822 obsolete local/domain 形式与折叠空白的具体结果测试；可由 XML 1.0 表示的 addr-spec 形式均纳入实现和测试，A13 调整为 PASS。
+
+依据 IERS Bulletin C72（2026-07-06）复核闰秒表：截至 2026-10-27，公告没有新增 2026 年末闰秒，现有表仍覆盖全部已公告正闰秒。新增未公告候选日期拒绝测试和 [闰秒维护流程](LEAP_SECONDS.md)，A15 调整为 PASS。流程要求在新公告发布后人工复核和更新，不进行运行时联网。
+
+XML 子集 reader 对所有 DOCTYPE 明确报错，不解析内部/外部子集、声明实体或 DTD 默认属性；这项边界和安全取舍记录于 [XML 解析范围](XML_PARSING_SCOPE.md)。该策略没有实现 RFC 所需的完整 XML 1.0/DTD 处理，A05 仍为 PARTIAL。
+
+本轮默认与 JS 目标各 141 项测试通过；其中原 117 项保持不变，22 项为 Atom 独立规范向量，另有 XML Base 与闰秒边界回归。完整结果与最新 CI 对应提交将在该提交推送后补记。当前矩阵为 **23 PASS、4 PARTIAL、0 FAIL**；A05、A20、A23、A27 仍为 PARTIAL，完整 RFC 4287 兼容声明仍不成立。
 
 ## Mooncakes README 快照
 

@@ -26,9 +26,6 @@ fn mail_cfws(
       } else if a[pos] == ')' {
         depth -= 1
       }
-      if depth > 32 {
-        raise InvalidRequiredField(path, "email comment nesting exceeds 32")
-      }
       pos += 1
     }
     if depth != 0 {

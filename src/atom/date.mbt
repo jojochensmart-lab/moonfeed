@@ -22,8 +22,8 @@ fn atom_date(value : String, path : String) -> AtomDate raise ParseError {
     (if year_zero { 63113904000L } else { 0L }) +
     (if leap_second { 1L } else { 0L })
   if leap_second {
-    // Public-domain IANA/IERS positive leap transitions (NTP seconds), through
-    // 2017-01-01. Future announcements require an update; no runtime download.
+    // Public-domain IANA/IERS transitions through 2017-01-01. The current
+    // announcement audit is recorded in docs/LEAP_SECONDS.md; no runtime download.
     // https://data.iana.org/time-zones/tzdb/leap-seconds.list
     let transitions = [
       2287785600L, 2303683200L, 2335219200L, 2366755200L, 2398291200L, 2429913600L,

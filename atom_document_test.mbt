@@ -254,7 +254,7 @@ test "XML Base retrieval URI and sibling scope restoration" {
 test "XML Base same document references empty base and LEIRI spaces" {
   let e = entry_document(
     (
-      #|<entry xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.org/a/file?original#base"><id>urn:base</id><title>Base</title><updated>2003-12-13T18:30:02Z</updated><author><name>A</name></author><content/><link xml:base="" href="#next"/><link rel="related" xml:base="../my folder/#section" href="child?x#f"/></entry>
+      #|<entry xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.org/a/file?original#base"><id>urn:base</id><title>Base</title><updated>2003-12-13T18:30:02Z</updated><author><name>A</name></author><content/><link xml:base="" href="#next"/><link rel="related" xml:base="../my folder/#section" href="child?x#f"/><link rel="related" xml:base="../my^folder/&lt;section&gt;/" href="child"/></entry>
     ),
   )
   assert_eq(
@@ -269,6 +269,20 @@ test "XML Base same document references empty base and LEIRI spaces" {
     e.metadata.links[1].href.resolved,
     "https://example.org/my folder/child?x#f",
   )
+  assert_eq(
+    e.metadata.links[2].href.resolved,
+    "https://example.org/my^folder/<section>/child",
+  )
+}
+
+///|
+test "XML Base preserves a character referenced LEIRI tab" {
+  let e = entry_document(
+    (
+      #|<entry xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.org/a&#x9;b/"><id>urn:entry:base-tab</id><title>Base tab</title><updated>2003-12-13T18:30:02Z</updated><author><name>A</name></author><link href="page"/><content>Body</content></entry>
+    ),
+  )
+  assert_eq(e.metadata.links[0].href.resolved, "https://example.org/a\tb/page")
 }
 
 ///|
@@ -814,6 +828,16 @@ test "strict Atom dates preserve fractions year zero known leap seconds and unkn
   assert_true(
     strict_error(
       strict_entry_xml("<published>2015-12-31T23:59:60Z</published><content/>"),
+    )
+    is @atom.InvalidRequiredField("entry.published", _),
+  )
+}
+
+///|
+test "strict Atom rejects a leap second absent from the current IERS table" {
+  assert_true(
+    strict_error(
+      strict_entry_xml("<published>2026-12-31T23:59:60Z</published><content/>"),
     )
     is @atom.InvalidRequiredField("entry.published", _),
   )

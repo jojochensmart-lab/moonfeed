@@ -2,6 +2,7 @@
 package "joanna/moonfeed/src/xmlmini"
 
 // Values
+pub fn is_valid_ip_literal(String) -> Bool
 
 // Errors
 pub(all) suberror XmlError {

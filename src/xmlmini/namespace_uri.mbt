@@ -106,13 +106,12 @@ fn valid_authority(a : Array[Char], start : Int, end : Int) -> Bool {
     if close < 0 {
       return false
     }
-    // The Atom IRI validator checks the full IP-literal grammar. Here we check
-    // URI-reference structure and ensure brackets are confined to the host.
+    let literal = StringBuilder()
     for i = host_start + 1; i < close; i = i + 1 {
-      let c = a[i]
-      if !uri_unreserved(c) && !uri_sub_delim(c) && c != ':' {
-        return false
-      }
+      literal.write_char(a[i])
+    }
+    if !is_valid_ip_literal(literal.to_string()) {
+      return false
     }
     if close + 1 == end {
       return true

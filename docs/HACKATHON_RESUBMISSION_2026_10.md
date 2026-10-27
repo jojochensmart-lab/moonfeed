@@ -32,19 +32,19 @@ RSS enclosure 及已有 Apple Podcasts/iTunes 核心元数据可用于列出节�
 - XML reader 正确区分物理行尾、字面属性空白与字符引用，验证 XML 声明字段/顺序/严格位置和名称，跳过一般处理指令，保持 namespace 字符串身份。
 - IRI 增加 IPv6、嵌入 IPv4、IPvFuture 和 Unicode/private-use 上下文校验；继续按 RFC3986 组件算法处理相对引用。
 - MIME 支持注释、折行、quoted 参数、参数顺序及大小写规则；未知参数值保留大小写和意义。修复带注释 text MIME 被错误当作 binary、进而要求 summary 的问题。email 增加非法折行诊断。
-- 原有 117 个测试未修改或删除，新增 21 个独立规范测试。默认目标和 JS 均为 138/138，check/build 无警告，无依赖，两个现有示例与 CLI detect/inspect/normalize smoke 通过。
+- 原有 117 个测试未修改或删除；目前总计 141 项，默认目标和 JS 均为 141/141。新增 22 个独立规范向量及 2 项 XML Base/闰秒边界回归。check/build 无警告，无依赖，两个现有示例与 CLI detect/inspect/normalize smoke 通过。最新 CI 应以本轮对应提交的 Actions 结果为准。
 
 本轮实现 CI：[8dd897c 的运行](https://github.com/jojochensmart-lab/moonfeed/actions/runs/39628836015) 已 success，check、137 tests、build、两个示例和 CLI smoke 均通过。后续文档提交的最终验收可从 [main 的 Actions](https://github.com/jojochensmart-lab/moonfeed/actions/workflows/ci.yml?query=branch%3Amain) 查看。不得用不同 HEAD 的失败/成功结果替代对应代码的验证。
 
 ## 完整兼容终点与剩余工作
 
-兼容矩阵目前为 **19 PASS、8 PARTIAL、0 FAIL**。这表示语言语法 FAIL 已有实现和正反测试，不能据此折算“完成百分比”或宣称权威认证。
+兼容矩阵目前为 **23 PASS、4 PARTIAL、0 FAIL**。这表示语言语法 FAIL 已有实现和正反测试，不能据此折算“完成百分比”或宣称权威认证。
 
 完整兼容之前仍需按优先级完成：
 
-1. 完整 namespace URI-reference 词法、Atom 所需 XML 1.0 序列化边界（目前不支持 DTD/internal declared entities/DTD 属性默认值与类型）及剩余 LEIRI 语法，并增加独立规范向量。
-2. RFC2822/RFC822 历史 email/MIME 控制字符和折行 productions、特定媒体类型参数等价规则及对应错误覆盖，避免误拒绝合法输入或错误合并链接。
-3. 建立闰秒公告维护核验及未来负闰秒策略；逐项更新矩阵证据。全部规范性缺口闭环后，再评估无条件完整兼容声明。
+1. RFC 3986 namespace URI-reference、RFC 3987 Atom IRI 组件/IP-literal 与 XML Base LEIRI 路径均有实现和边界向量。XML reader 明确拒绝 DOCTYPE，内部/外部 DTD、声明实体及 DTD 默认属性不支持，因此 A05 仍未完成。
+2. RFC 2822 可由 XML 1.0 表示的 addr-spec、obsolete local/domain 与折叠形式已有实现和结果断言。剩余 MIME 注册参数等价规则、若干 MIME 边缘语法及相应诊断仍需补齐。
+3. 闰秒表已按 IERS Bulletin C72 核验，并建立公告后的人工维护流程与未公告日期拒绝测试；仍需随之后公告持续维护。全部规范性缺口闭环后，再评估无条件完整兼容声明。
 
 Atom Publishing Protocol、完整 XML Schema 验证器、C14N、通用 XML 工具链和签名验证不是本项目的兼容终点。当前材料用于呈现真实整改与可复核路线，不能承诺组委会一定通过。若复审硬性要求完整 RFC 4287，仍应先完成上述标准缺口。
 
@@ -58,7 +58,7 @@ Atom Publishing Protocol、完整 XML Schema 验证器、C14N、通用 XML 工�
 
 ## 最终交付材料与第四轮复核（2026-10-22）
 
-可直接复用的最新申报稿位于 [HACKATHON_RESUBMISSION_FINAL.md](HACKATHON_RESUBMISSION_FINAL.md)。本轮修正 namespace URI-reference 结构校验并新增正反向量；A03 仍为 PARTIAL，RFC 矩阵仍是 19 PASS / 8 PARTIAL / 0 FAIL，不宣称完整 RFC 4287 兼容。闰秒公告状态截至本日核验，详细缺口和测试证据见 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md) 与 [第四轮审计](ATOM_ROUND3_AUDIT.md)。
+本地最新申报稿不纳入公开仓库，因为原件含报名个人信息。第四轮之后，本轮补齐 namespace URI 的 IP-literal 校验、RFC 3987 IRI 各组件字符规则及 RFC 2822 obsolete addr-spec 实例；A03、A08、A13 和闰秒公告 A15 均为 PASS。默认和 JS 测试均为 141/141。当前矩阵为 23 PASS / 4 PARTIAL / 0 FAIL；A05、A20、A23、A27 仍未闭环，项目不宣称完整 RFC 4287 兼容。详细证据见 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md)、[闰秒维护流程](LEAP_SECONDS.md) 与 [XML 解析范围](XML_PARSING_SCOPE.md)。
 
 Mooncakes `0.2.0` 已发布，包含 Atom document API。新项目通过 registry 安装到精确版本，并完成 check/build 与 JSON/RSS/Atom Feed/Entry smoke。最新 CI 与 registry 证据见下方。
 

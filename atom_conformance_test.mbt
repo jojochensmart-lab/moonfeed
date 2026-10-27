@@ -241,13 +241,37 @@ test "conformance RFC3987 private use is query only" {
   for
     href in [
       "https://example.org/\u{E000}", "https://example.org/#\u{E000}", "https://example.org/\u{FDD0}",
-      "https://example.org/\u{1FFFF}", "https://example.org/%zz",
+      "https://example.org/\u{1FFFF}", "https://example.org/\u{FFF0}", "https://example.org/\u{10FFFE}",
+      "https://example.org/\u{9F}", "https://\u{E000}@example.org/path",
     ] {
     assert_true(
       conform_error(
         @conformance.entry("", "<link href='" + href + "'/><content/>"),
       )
       is @atom.InvalidRequiredField("entry.link[0].href", _),
+    )
+  }
+}
+
+///|
+test "conformance RFC3987 component productions" {
+  for
+    value in [
+      "https://user:pass@example.org:443/a!$&'()*+,;=:@segment?query=!$&'()*+,;=:@/?#fragment?/?",
+      "https://用户@例え.example/路径?q=月#节", "../relative/路径?q=值",
+      "https://host/%E2%9C%93", "https://host/\u{A0}/\u{D7FF}/\u{FDCF}/\u{FDF0}/\u{FFEF}/\u{10000}/\u{DFFFD}/\u{E1000}/\u{EFFFD}",
+      "https://host/?q=\u{E000}\u{F0000}\u{100000}",
+    ] {
+    assert_eq(@atom.resolve_reference(None, value).resolved, value)
+  }
+  for
+    value in [
+      "https://user[name]@example.org/path", "https://bad^host/path", "https://example.org/path\\tail",
+      "https://example.org/path?bad[query]",
+    ] {
+    assert_true(
+      @test.expect_error(() => @atom.resolve_reference(None, value))
+      is @atom.InvalidRequiredField("iri", _),
     )
   }
 }
@@ -314,6 +338,26 @@ test "conformance email folding and malformed line breaks" {
     ),
   )
   assert_eq(e.metadata.contributors[0].email, Some("(note) a\r\n @example.org"))
+  let obsolete = conform_entry(
+    @conformance.entry(
+      "", "<contributor><name>Old syntax</name><email>(lead) a (left) . (right) &quot;b c&quot; @ (at) example (dot) . (name) org (tail)</email></contributor><content/>",
+    ),
+  )
+  assert_eq(
+    obsolete.metadata.contributors[0].email,
+    Some(
+      "(lead) a (left) . (right) \"b c\" @ (at) example (dot) . (name) org (tail)",
+    ),
+  )
+  let folded_obsolete = conform_entry(
+    @conformance.entry(
+      "", "<contributor><name>Folded old syntax</name><email>a.&#13;&#10; b@example.&#13;&#10; org</email></contributor><content/>",
+    ),
+  )
+  assert_eq(
+    folded_obsolete.metadata.contributors[0].email,
+    Some("a.\r\n b@example.\r\n org"),
+  )
   for
     value in [
       "a&#10;@example.org", "a&#13;@example.org", "a&#13;&#10;@example.org", "a..b@example.org",
@@ -330,6 +374,25 @@ test "conformance email folding and malformed line breaks" {
       is @atom.InvalidRequiredField("entry.contributor[0].email", _),
     )
   }
+  let mut nested_comment = ""
+  let mut closing_comment = ""
+  for i = 0; i < 64; i = i + 1 {
+    nested_comment += "("
+    closing_comment += ")"
+  }
+  let deep_email = nested_comment +
+    "comment" +
+    closing_comment +
+    "x@example.org"
+  let deep = conform_entry(
+    @conformance.entry(
+      "",
+      "<contributor><name>X</name><email>" +
+      deep_email +
+      "</email></contributor><content/>",
+    ),
+  )
+  assert_eq(deep.metadata.contributors[0].email, Some(deep_email))
 }
 
 ///|
@@ -393,6 +456,7 @@ test "conformance namespace URI reference component grammar" {
     uri in [
       "urn:example:feed", "https://example.org/ns?q=a/b#part", "../relative/ns",
       "//example.org/ns", "https://user:pass@example.org:443/ns", "http://[2001:db8::1]/ns",
+      "http://[::ffff:192.0.2.128]/ns", "http://[v1.future-host]/ns", "a/b:c?d/e#f",
     ] {
     let e = conform_entry(
       @conformance.entry("xmlns:e='" + uri + "' e:child='ok'", "<content/>"),
@@ -403,7 +467,8 @@ test "conformance namespace URI reference component grammar" {
     uri in [
       "1invalid:scheme", "urn:bad[bracket", "urn:bad]bracket", "//example.org:abc/ns",
       "//example.org/[path]", "//user@@example.org/ns", "http://example.org:8x/ns",
-      "urn:bad?q=[x]", "urn:bad#frag[x]",
+      "urn:bad?q=[x]", "urn:bad#frag[x]", "http://[2001::db8::1]/ns", "http://[1:2:3:4:5:6:7]/ns",
+      "http://[vG.future]/ns", "http://[v1.]/ns",
     ] {
     assert_true(
       conform_error(@conformance.entry("xmlns:e='" + uri + "'", "<content/>"))

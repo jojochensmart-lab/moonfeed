@@ -36,12 +36,74 @@ fn ascii_digit(c : Char) -> Bool {
 }
 
 ///|
+priv enum IriComponent {
+  UserInfo
+  RegName
+  Path
+  Query
+  Fragment
+}
+
+///|
+fn iri_sub_delim(c : Char) -> Bool {
+  "!$&'()*+,;=".contains(c.to_string())
+}
+
+///|
+fn iri_component_character(c : Char, component : IriComponent) -> Bool {
+  let unreserved = ascii_alpha(c) ||
+    ascii_digit(c) ||
+    "-._~".contains(c.to_string()) ||
+    iri_unicode(c, component is Query)
+  if unreserved || iri_sub_delim(c) {
+    return true
+  }
+  match component {
+    UserInfo => c == ':'
+    RegName => false
+    Path => c == ':' || c == '@' || c == '/'
+    Query => c == ':' || c == '@' || c == '/' || c == '?'
+    Fragment => c == ':' || c == '@' || c == '/' || c == '?'
+  }
+}
+
+///|
+fn valid_iri_component(value : String, component : IriComponent) -> Bool {
+  let a = value.to_array()
+  let mut i = 0
+  while i < a.length() {
+    if a[i] == '%' {
+      if i + 2 >= a.length() || !hex_digit(a[i + 1]) || !hex_digit(a[i + 2]) {
+        return false
+      }
+      i += 3
+    } else if iri_component_character(a[i], component) {
+      i += 1
+    } else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 fn hex_digit(c : Char) -> Bool {
   ascii_digit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
 }
 
 ///|
-fn iri_authority(value : String) -> Unit raise ParseError {
+fn xml_base_character(c : Char) -> Bool {
+  let n = c.to_int()
+  n == 0x9 ||
+  n == 0xA ||
+  n == 0xD ||
+  (n >= 0x20 && n <= 0xD7FF) ||
+  (n >= 0xE000 && n <= 0xFFFD) ||
+  (n >= 0x10000 && n <= 0x10FFFF)
+}
+
+///|
+fn iri_authority(value : String, strict : Bool) -> Unit raise ParseError {
   let a = value.to_array()
   let mut start = 0
   let mut at_seen = false
@@ -56,10 +118,10 @@ fn iri_authority(value : String) -> Unit raise ParseError {
       start = i + 1
     }
   }
-  for i = 0; i < start; i = i + 1 {
-    if a[i] == '[' || a[i] == ']' {
-      raise InvalidRequiredField("iri", "invalid userinfo character")
-    }
+  if strict &&
+    at_seen &&
+    !valid_iri_component(chars_span(a, 0, start - 1), UserInfo) {
+    raise InvalidRequiredField("iri", "invalid userinfo character")
   }
   let mut port_start = a.length()
   if start < a.length() && a[start] == '[' {
@@ -81,18 +143,24 @@ fn iri_authority(value : String) -> Unit raise ParseError {
       port_start = end + 2
     }
   } else {
-    let mut colon_seen = false
+    let mut port_separator = -1
     for i = start; i < a.length(); i = i + 1 {
       if a[i] == '[' || a[i] == ']' {
         raise InvalidRequiredField("iri", "invalid host brackets")
       }
       if a[i] == ':' {
-        if colon_seen {
+        if port_separator >= 0 {
           raise InvalidRequiredField("iri", "IPv6 host must be bracketed")
         }
-        colon_seen = true
-        port_start = i + 1
+        port_separator = i
       }
+    }
+    let host_end = if port_separator >= 0 { port_separator } else { a.length() }
+    if strict && !valid_iri_component(chars_span(a, start, host_end), RegName) {
+      raise InvalidRequiredField("iri", "invalid registered host name")
+    }
+    if port_separator >= 0 {
+      port_start = port_separator + 1
     }
   }
   for i = port_start; i < a.length(); i = i + 1 {
@@ -114,24 +182,22 @@ fn parse_iri_parts(
 ) -> IriParts raise ParseError {
   let a = input.to_array()
   for i, c in a {
-    if (
-        !legacy_base &&
-        (
-          c.to_int() <= 0x20 ||
-          (c.to_int() >= 0x80 && c.to_int() <= 0x9F) ||
-          c.to_int() == 0x7F ||
-          c == '<' ||
-          c == '>' ||
-          c == '"' ||
-          c == '\\' ||
-          c == '^' ||
-          c == '`' ||
-          c == '{' ||
-          c == '|' ||
-          c == '}'
-        )
-      ) ||
-      c.to_int() < 0x20 {
+    if legacy_base {
+      if !xml_base_character(c) {
+        raise InvalidRequiredField("iri", "invalid XML Base LEIRI character")
+      }
+    } else if c.to_int() <= 0x20 ||
+      (c.to_int() >= 0x80 && c.to_int() <= 0x9F) ||
+      c.to_int() == 0x7F ||
+      c == '<' ||
+      c == '>' ||
+      c == '"' ||
+      c == '\\' ||
+      c == '^' ||
+      c == '`' ||
+      c == '{' ||
+      c == '|' ||
+      c == '}' {
       raise InvalidRequiredField("iri", "invalid IRI character")
     }
     if c == '%' &&
@@ -213,10 +279,19 @@ fn parse_iri_parts(
       raise InvalidRequiredField("iri", "unclosed authority bracket")
     }
     authority = Some(auth)
-    iri_authority(auth)
+    iri_authority(auth, !legacy_base)
   }
   let path = chars_span(a, start, query_at)
   if !legacy_base {
+    if !valid_iri_component(path, Path) {
+      raise InvalidRequiredField("iri", "invalid IRI path character")
+    }
+    if query is Some(value) && !valid_iri_component(value, Query) {
+      raise InvalidRequiredField("iri", "invalid IRI query character")
+    }
+    if fragment is Some(value) && !valid_iri_component(value, Fragment) {
+      raise InvalidRequiredField("iri", "invalid IRI fragment character")
+    }
     // Private-use code points are allowed only in iquery, not path/fragment/host.
     for
       (component, private_allowed) in [
