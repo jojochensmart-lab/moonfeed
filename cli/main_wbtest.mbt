@@ -37,7 +37,7 @@ test "empty collections and attachments serialize consistently" {
 ///|
 test "help and version are stable" {
   assert_true(help_text().contains("moonfeed normalize <file|->"))
-  assert_eq(VERSION, "0.1.0")
+  assert_eq(VERSION, "0.2.0")
 }
 
 ///|
@@ -54,4 +54,20 @@ test "podcast enclosure duration appears in normalized JSON" {
   )
   let output = feed_json(feed).stringify()
   assert_true(output.contains("\"duration_in_seconds\":184"))
+}
+
+///|
+test "CLI retains item language and exact attachment size in normalized JSON" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"F","language":"zh-CN","items":[{"id":"a","content_text":"x","attachments":[{"url":"u","mime_type":"audio/mpeg","size_in_bytes":18446744073709551615}]}]}
+  let feed = @moonfeed.parse(input)
+  let encoded = feed_json(feed)
+  guard encoded is Object(fields) &&
+    fields.get("items") is Some(Array([Object(item), ..])) else {
+    abort("expected normalized item")
+  }
+  assert_eq(item.get("language"), Some(Json::string("zh-CN")))
+  assert_true(
+    encoded.stringify().contains("\"size_in_bytes\":18446744073709551615"),
+  )
 }

@@ -43,7 +43,7 @@ pub fn NamespaceReader::read_event(Self) -> NamespaceEvent raise XmlError
 
 pub struct Reader {
   chars : Array[Char]
-  mut pos : Int
+  mut pos : Int32
   tags : Array[String]
   strict_declaration : Bool
   // private fields

@@ -1,5 +1,9 @@
 # MoonFeed 十月黑客松整改说明
 
+> 最新交付复核（2026-11-02）：源码默认/JS 各 160/160，主工具链 moon 0.1.20261028 / moonc v0.10.18，矩阵 24 PASS / 3 PARTIAL / 0 FAIL；已发布包仍为 0.2.0，源码功能增量为 Unreleased。申报技术状态见 [补充说明](终审申报补充说明.md)，版本与 PARTIAL 判断见 [终审交付审计](FINAL_DELIVERY_AUDIT.md)。本轮提交及最新 CI 必须按最终完整 hash 核对，最终报告记录实际 run URL。下方内容是历史阶段记录，旧计数、旧版本和当时未提交/未发布的描述不代表当前结论。
+
+## 历史阶段记录
+
 ## 初审问题与第一阶段修复
 
 组委会指出，Atom 元素必须按 namespace URI 与 local name 识别；只改变前缀的等价文档应产生等价结果，项目也应明确完整 RFC 4287 兼容的终点。
@@ -82,3 +86,13 @@ XML 子集 reader 对所有 DOCTYPE 明确报错，不解析内部/外部子集�
 MIME parser 按 RFC 2045 比较 media type/token 和参数名、默认保留参数值大小写；另外处理 RFC 2046 `message/external-body` 的 `access-type`、`permission` 和 `mode` 不区分大小写。新增 quoted-pair、alternate-link 重复判定和字段路径错误向量。A23 的 MIME 词法语法和 A27 的已实现规则 typed-error 路径有正反测试后调整为 PASS；A20 仍为 PARTIAL，因为不会动态加载所有媒体类型注册的参数语义。
 
 本地 `moon check` 通过、`moon test` 147/147；默认/JS 构建、示例及 CI 以本轮最终提交对应的 Actions 为准。当前矩阵为 **25 PASS、2 PARTIAL、0 FAIL**，仍不宣称完整 RFC 4287 兼容。实现范围、复现证据与剩余标准边界见 [XML 解析范围](XML_PARSING_SCOPE.md) 和 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md)。
+
+## 2026-11-01 以最终申报书为依据的工作区验收
+
+重新运行 Git 2a3fc7b 基线：147/147（默认/JS），无警告无依赖。以本地最终申报稿明确的三格式/统一模型/Atom 元数据/日期/CLI 承诺为范围，补齐 JSON attachments/BOM、RSS 核心字段 namespace 隔离与 itunes 作用域、RSS item language、数字日期溢出、Atom 继承作者集合独立、XML 错误原因、CLI language/version 和公共类型导出。新增四个独立示例，形成六示例及文件/stdin/错误退出码的验收脚本。
+
+原 147 个测试全部保留，新增 13 个，默认/JS 各 160/160，check/build 无警告。七个旧 Podcast fixture 的尾随逗号此前被错误忽略，现修正样例而保留原字段断言；JSON 附件与 CLI 版本断言升级为实际支持行为。已重新在仓库外从 registry 安装精确 0.2.0，四个消费端测试在两目标各 4/4，check/build 成功；这不证明 Unreleased 改进已经发布。
+
+P2 复核发现 A13 的“全部 XML 可表示 addr-spec”旧结论过满：补齐 DEL 后仍缺 obsolete quoted-pair CR/LF，故矩阵如实为 24 PASS / 3 PARTIAL / 0 FAIL。全 XML DTD validity 不应成为扩大本项目的理由，MIME 的任意参数语义仍保持 PARTIAL。未宣称完整 RFC 4287。
+
+原申报书及主动重命名状态保持不变；打包规则新增精确排除 docs/申报书final.md，防止含个人报名信息的原件进入发布包。对照表和材料修订理由见 [申报书功能实现对照表](申报书功能实现对照表.md)，可复现步骤见 [FINAL_ACCEPTANCE](FINAL_ACCEPTANCE.md)。本轮未提交、未推送、未发布；历史 Actions 不能当作本轮修改的 CI。

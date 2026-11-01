@@ -70,6 +70,18 @@ pub using @atom {type AtomPerson}
 
 pub using @atom {type AtomText}
 
+pub using @model {type Attachment}
+
+pub using @model {type Author}
+
+pub using @model {type Feed}
+
+pub using @detect {type FeedFormat}
+
+pub using @model {type FeedItem}
+
+pub using @model {type FeedLink}
+
 pub using @atom {type IriReference}
 
 pub using @atom {type Markup}
@@ -77,5 +89,13 @@ pub using @atom {type Markup}
 pub using @atom {type MarkupAttribute}
 
 pub using @atom {type MarkupContent}
+
+pub using @model {type PodcastCategory}
+
+pub using @model {type PodcastEpisodeMetadata}
+
+pub using @model {type PodcastFeed}
+
+pub using @model {type PodcastShowMetadata}
 
 // Traits

@@ -2,9 +2,18 @@
 
 ## Unreleased
 
+- Final delivery audit (2026-11-02): synchronize technical application supplements without overwriting originals; document three remaining Atom limits, propose 0.3.0 for the functional additions, and exclude the legacy tracked application filename from package archives.
+
+- Complete JSON Feed attachment mapping and validation, align explicit JSON BOM handling, and expose common model/format types from the root package without changing existing model layouts.
+- Correct RSS default/itunes namespace scope, reject out-of-document data, inherit channel language, preserve XML error reasons, isolate Atom inherited author arrays and guard date-number overflow.
+- Align CLI version with module 0.2.0 and preserve item language in normalized JSON; add four runnable examples and reproducible source/registry acceptance scripts.
+- Retain 147 existing tests and add 13 focused cases (160 total). Correct seven Podcast XML fixture suffixes; strengthen attachment and version assertions.
+- Admit RFC 2822 DEL in permitted email contexts and correct the audit's unsupported obsolete quoted-CR/LF boundary: 24 PASS / 3 PARTIAL / 0 FAIL. Full RFC 4287 conformance is not claimed.
+- Protect the renamed private application document in the package manifest and add a proposal-to-code evidence table. These source changes are not published in 0.2.0.
+
 - Add bounded internal DTD support for text-only general entities, `ATTLIST` default attributes, and CDATA/tokenized attribute normalization; reject recursive, external, markup, and over-budget entity expansions with XML errors.
 - Apply RFC 2046 case-insensitive parameter-value comparison for `message/external-body` access-type, permission, and mode; retain RFC 2045 case-sensitive defaults for other values.
-- Add Atom typed-error path assertions and MIME quoted-pair, DTD namespace-default, entity expansion and rejection tests; the suite now has 147 tests.
+- Add Atom typed-error path assertions and MIME quoted-pair, DTD namespace-default, entity expansion and rejection tests; this was the 147-test checkpoint, superseded by the 160-test final regression.
 - Share RFC 3986 IPv6/IPvFuture literal validation between namespace URI references and Atom IRI parsing; add valid/invalid authority vectors.
 - Remove the arbitrary 32-level email-comment nesting cap and cover 64 nested comments in the Atom conformance tests.
 - Validate RFC 3987 IRI characters by component, cover Unicode/private-use boundaries, and preserve extended XML Base characters during RFC 3986 resolution.
@@ -28,7 +37,7 @@
 - Add XML Base scope and RFC 3986 reference resolution, retaining original and resolved references and a caller-supplied retrieval base.
 - Validate document cardinality, author conditions, content/link/summary rules and Atom-specific date syntax; retain precision, year 0000, recorded leap seconds and unknown-local-offset markers.
 - Preserve XHTML/XML content and decode Base64 content; cover RFC examples, URI resolution vectors and semantic errors with 29 new tests (117 total).
-- Add an executable Atom document equivalence example to CI and update the compliance matrix with remaining XML/IRI/language/email/MIME gaps. These changes are not yet published to Mooncakes.
+- Add an executable Atom document equivalence example to CI and update the compliance matrix with remaining XML/IRI/language/email/MIME gaps. These Atom document additions were included in the 0.2.0 release; later Unreleased work is listed above.
 
 - Resolve Atom element and attribute names by namespace URI and local name in parsing and format detection; arbitrary prefixes are supported and foreign elements with colliding names are ignored.
 - Preserve the existing XML event API for RSS while adding namespace scope, reserved binding, unqualified attribute, and duplicate expanded-attribute handling.

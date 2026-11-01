@@ -1,5 +1,9 @@
 # MoonFeed 十月黑客松重新申报材料
 
+> 最新交付复核（2026-11-02）：源码默认/JS 各 160/160，主工具链 moon 0.1.20261028 / moonc v0.10.18，矩阵 24 PASS / 3 PARTIAL / 0 FAIL；已发布包仍为 0.2.0，源码功能增量为 Unreleased。申报技术状态见 [补充说明](终审申报补充说明.md)，版本与 PARTIAL 判断见 [终审交付审计](FINAL_DELIVERY_AUDIT.md)。本轮提交及最新 CI 必须按最终完整 hash 核对，最终报告记录实际 run URL。下方内容是历史阶段记录，旧计数、旧版本和当时未提交/未发布的描述不代表当前结论。
+
+## 历史阶段记录
+
 ## 项目名称与定位
 
 **MoonFeed：面向 MoonBit 的 RSS 2.0、Atom 1.0 与 JSON Feed 1.1 统一解析与规范化工具库。**
@@ -71,3 +75,13 @@ joanna/moonfeed@0.2.0 registry 元数据和新项目安装均已确认正确；�
 内部 XML reader 已增加受限的内部 DTD 子集处理：支持文本型内部通用实体、嵌套引用、`ATTLIST` 默认值和 CDATA/令牌化属性规范化，并限制实体递归深度与单值展开量。外部 DTD/实体不会被读取，参数实体、实体替换标记和完整 DTD validity 仍未实现。MIME parser 增加 RFC 2046 `message/external-body` 特定参数大小写规则；完整 MIME 词法和已实现规则的 typed-error 路径有正反测试。当前 147 项测试通过，矩阵为 25 PASS / 2 PARTIAL / 0 FAIL；A05 与 A20 仍阻止完整 RFC 4287 声明。
 
 本轮最终代码 HEAD、默认与 JS 验证、GitHub Actions 结果及提交信息应以 [GitHub 最新提交](https://github.com/jojochensmart-lab/moonfeed/commits/main) 和 [兼容矩阵](ATOM_RFC4287_COMPLIANCE.md) 为准。本项目不通过文档措辞将未支持的外部 DTD 或任意 MIME registry 语义描述为已完成。
+
+## 2026-11-01 以最终申报书为依据的工作区验收
+
+重新运行 Git 2a3fc7b 基线：147/147（默认/JS），无警告无依赖。以本地最终申报稿明确的三格式/统一模型/Atom 元数据/日期/CLI 承诺为范围，补齐 JSON attachments/BOM、RSS 核心字段 namespace 隔离与 itunes 作用域、RSS item language、数字日期溢出、Atom 继承作者集合独立、XML 错误原因、CLI language/version 和公共类型导出。新增四个独立示例，形成六示例及文件/stdin/错误退出码的验收脚本。
+
+原 147 个测试全部保留，新增 13 个，默认/JS 各 160/160，check/build 无警告。七个旧 Podcast fixture 的尾随逗号此前被错误忽略，现修正样例而保留原字段断言；JSON 附件与 CLI 版本断言升级为实际支持行为。已重新在仓库外从 registry 安装精确 0.2.0，四个消费端测试在两目标各 4/4，check/build 成功；这不证明 Unreleased 改进已经发布。
+
+P2 复核发现 A13 的“全部 XML 可表示 addr-spec”旧结论过满：补齐 DEL 后仍缺 obsolete quoted-pair CR/LF，故矩阵如实为 24 PASS / 3 PARTIAL / 0 FAIL。全 XML DTD validity 不应成为扩大本项目的理由，MIME 的任意参数语义仍保持 PARTIAL。未宣称完整 RFC 4287。
+
+原申报书及主动重命名状态保持不变；打包规则新增精确排除 docs/申报书final.md，防止含个人报名信息的原件进入发布包。对照表和材料修订理由见 [申报书功能实现对照表](申报书功能实现对照表.md)，可复现步骤见 [FINAL_ACCEPTANCE](FINAL_ACCEPTANCE.md)。本轮未提交、未推送、未发布；历史 Actions 不能当作本轮修改的 CI。

@@ -1,5 +1,5 @@
 ///|
-const VERSION = "0.1.0"
+const VERSION = "0.2.0"
 
 ///|
 fn main {
@@ -126,6 +126,7 @@ fn item_json(item : @model.FeedItem) -> Json {
     ("title", optional_json(item.title)),
     ("url", optional_json(item.url)),
     ("external_url", optional_json(item.external_url)),
+    ("language", optional_json(item.language)),
     ("summary", optional_json(item.summary)),
     ("content_text", optional_json(item.content_text)),
     ("content_html", optional_json(item.content_html)),

@@ -37,9 +37,10 @@ jobs:
         run: |
           moon run examples/basic
           moon run examples/atom
+          moon run examples/jsonfeed
+          moon run examples/rss
+          moon run examples/atom_feed
+          moon run examples/errors
       - name: CLI smoke tests
         run: |
-          moon run cli --target js -- detect fixtures/rss/full.xml
-          moon run cli --target js -- inspect fixtures/atom/full.xml
-          moon run cli --target js -- normalize fixtures/jsonfeed/full.json > normalized.json
-          node -e "JSON.parse(require('fs').readFileSync('normalized.json', 'utf8'))"
+          node scripts/verify.mjs --cli-only

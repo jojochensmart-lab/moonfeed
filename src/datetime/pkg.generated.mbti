@@ -33,7 +33,7 @@ pub(all) struct DateTime {
   raw : String
   unix_seconds : Int64
 } derive(Eq, @debug.Debug)
-pub fn DateTime::compare(Self, Self) -> Int
+pub fn DateTime::compare(Self, Self) -> Int32
 pub fn DateTime::equal(Self, Self) -> Bool
 pub fn DateTime::not_equal(Self, Self) -> Bool
 pub fn DateTime::to_repr(Self) -> @debug.Repr

@@ -238,11 +238,13 @@ test "empty duplicate and numeric item identifiers are rejected" {
 }
 
 ///|
-test "extensions and unsupported fields are ignored" {
+test "extensions are ignored while standard attachments are retained" {
   let feed = @moonfeed.parse_json_feed(
     (
       #|{"version":"https://jsonfeed.org/version/1.1","title":"x","_custom":{},"items":[{"id":"a","content_text":"x","attachments":[{"url":"https://example.org/a.mp3","mime_type":"audio/mpeg"}]}]}
     ),
   )
-  assert_true(feed.items[0].attachments.is_empty())
+  assert_eq(feed.items[0].attachments.length(), 1)
+  assert_eq(feed.items[0].attachments[0].url, "https://example.org/a.mp3")
+  assert_eq(feed.items[0].attachments[0].mime_type, "audio/mpeg")
 }

@@ -12,9 +12,13 @@ fn token_char(c : Char) -> Bool {
 }
 
 ///|
-fn header_characters(a : Array[Char], path : String) -> Unit raise ParseError {
+fn header_characters(
+  a : Array[Char],
+  path : String,
+  allow_del? : Bool = false,
+) -> Unit raise ParseError {
   for i, c in a {
-    if c.to_int() > 0x7E ||
+    if (c.to_int() > 0x7E && !(allow_del && c.to_int() == 0x7F)) ||
       (c.to_int() < 0x20 && c != '\t' && c != '\r' && c != '\n') {
       raise InvalidRequiredField(path, "invalid header character")
     }

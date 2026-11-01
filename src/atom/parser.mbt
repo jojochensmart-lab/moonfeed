@@ -109,7 +109,7 @@ fn document_tree(
   let roots : Array[Node] = []
   while true {
     let event = reader.read_event() catch {
-      _ => raise InvalidXml("malformed XML")
+      @xmlmini.Malformed(message) => raise InvalidXml(message)
     }
     match event {
       @xmlmini.NamespaceStart(element) => {
@@ -393,7 +393,7 @@ fn entry(
     url,
     external_url: None,
     authors: if authors.is_empty() {
-      feed_authors
+      feed_authors.copy()
     } else {
       authors
     },

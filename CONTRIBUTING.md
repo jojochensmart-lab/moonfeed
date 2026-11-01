@@ -4,7 +4,7 @@ Thanks for helping improve MoonFeed. The project implements JSON Feed 1.1, RSS 2
 
 ## Requirements
 
-- MoonBit v0.10.14 or newer. Local development is verified with v0.10.14; GitHub Actions records and tests the installed toolchain version.
+- MoonBit v0.10.14 or newer. Current local development is verified with v0.10.18, with an additional minimum-version check on v0.10.14; GitHub Actions records its actual toolchain.
 - Node.js for the JavaScript target tests and the repository CLI smoke tests.
 
 ## Set up and verify
@@ -13,8 +13,6 @@ From the repository root, run:
 
 ```sh
 moon info
-moon fmt
-moon fmt --check
 moon check
 moon test
 moon build
@@ -26,6 +24,10 @@ moon run examples/atom
 ```
 
 The CLI is a MoonBit program run on Node.js. Its current smoke commands are listed in [README.md](README.md). When changing public APIs, update the examples and the relevant `.mbti` interface, then inspect the interface diff.
+
+Use the v0.10.14 formatter for `moon fmt` and `moon fmt --check` while retaining that minimum: the v0.10.18 formatter automatically changes source `Int` to `Int32`, which v0.10.14 cannot parse. This is a formatter-version policy; builds and ordinary development use the current compiler, with no compatibility shim or package-format downgrade.
+
+`node scripts/verify.mjs` runs both targets, six examples and CLI positive/negative smoke tests. `node scripts/verify-registry.mjs <new-directory>` separately installs exact registry version 0.2.0 in a new consumer. Source-only improvements must not be described as already published. See [acceptance instructions](docs/FINAL_ACCEPTANCE.md) and the [proposal implementation table](docs/申报书功能实现对照表.md).
 
 ## Tests and behavior changes
 

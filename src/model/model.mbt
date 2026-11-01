@@ -7,7 +7,7 @@ pub(all) struct Author {
 } derive(Eq, @debug.Debug)
 
 ///|
-/// A downloadable resource; numeric metadata is reserved for future parsers.
+/// A downloadable resource with optional byte size and duration metadata.
 pub(all) struct Attachment {
   url : String
   mime_type : String

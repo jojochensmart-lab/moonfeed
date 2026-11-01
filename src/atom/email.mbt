@@ -78,10 +78,13 @@ fn mail_word(
 
 ///|
 /// Addr-spec parser with dot atoms, quoted words, comments and domain literals.
-/// Obsolete control-character/FWS productions remain outside the validated subset.
+/// Obsolete quoted CR/LF productions remain outside the validated subset.
 fn validate_email(value : String, path : String) -> Unit raise ParseError {
   let a = value.to_array()
-  header_characters(a, path)
+  // RFC 2822 NO-WS-CTL includes DEL, which is legal XML 1.0 text.
+  // The word/comment/domain parsers still decide where it is permitted;
+  // MIME headers keep their stricter character repertoire.
+  header_characters(a, path, allow_del=true)
   for c in a {
     if c.to_int() > 0x7F ||
       (c.to_int() < 0x20 && c != '\t' && c != '\r' && c != '\n') {

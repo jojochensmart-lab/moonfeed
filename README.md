@@ -18,8 +18,8 @@
 ## Requirements
 
 - MoonBit >= v0.10.14
-- 当前开发验证使用 MoonBit `0.1.20260920` / `moonc v0.10.14+7d59c7ec9`。
-- GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本；本地开发验证使用 MoonBit v0.10.14。查看[最新 CI 运行](https://github.com/jojochensmart-lab/moonfeed/actions/workflows/ci.yml)了解远端实际编译器版本和结果。
+- 当前开发验证使用 Moon CLI `0.1.20261028` / `moonc v0.10.18+6c83a7f62`；最低支持版本沿用 v0.10.14。
+- GitHub Actions 使用官方 `latest` 安装渠道并输出实际版本。查看[最新 CI 运行](https://github.com/jojochensmart-lab/moonfeed/actions/workflows/ci.yml)了解远端实际编译器版本和结果；必须核对 run 的 headSha 与交付提交一致。
 - RSS 与 Atom XML 解析使用 MoonFeed 内部 `src/xmlmini` reader，不依赖第三方 XML registry 包。Atom 元素按 namespace URI 与 local name 识别；RFC 4287 尚未完整实现，详见 [兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 实现依据：[JSON Feed 1.1 规范](https://www.jsonfeed.org/version/1.1/) 和 [RSS 2.0 规范](https://www.rssboard.org/rss-specification)。
@@ -32,7 +32,9 @@
 moon add joanna/moonfeed
 ```
 
-`moon add joanna/moonfeed` 已在全新项目验证，当前 registry 解析并固定 `0.2.0`。该版本包含 Atom Feed/Entry 文档 API、namespace URI 校验和本 README 所述功能；`0.1.2` 不含这些新增 API。
+需要复现已发布包时可执行 `moon add joanna/moonfeed@0.2.0`。本轮在仓库外全新项目重新下载该精确版本，三种格式、独立 Entry、探测、日期及错误 API 的四个 smoke 测试在默认和 JS 目标均通过。该版本包含 Atom Feed/Entry 文档 API；`0.1.2` 不含这些 API。
+
+**工作区与发布包有版本边界**：下文新增的 JSON Feed attachments、RSS scope/语言修复、公共模型类型重导出和 CLI 改进属于 `Unreleased`，尚未发布到 `0.2.0`。评审这些改进请使用本轮源码。下一次发布建议采用 0.3.0（功能增量），本轮不发布；理由见 [终审交付审计](docs/FINAL_DELIVERY_AUDIT.md)。源码及 registry 的独立验收步骤见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
 
 也可以从 GitHub 源码运行和开发：
 
@@ -70,7 +72,7 @@ Items: 2
 ```
 ## 当前限制
 
-MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Atom 内部 XML reader 支持内部 DTD 的文本实体和默认属性，但不支持参数实体、外部 DTD/实体或实体替换标记；alternate 链接的部分媒体类型注册参数比较也未覆盖。因此项目仍不宣称完整 RFC 4287 兼容。详见 [XML parsing scope](docs/XML_PARSING_SCOPE.md)、[leap-second procedure](docs/LEAP_SECONDS.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Atom 内部 XML reader 支持内部 DTD 的文本实体和默认属性，但不支持参数实体、外部 DTD/实体或实体替换标记；alternate 链接的部分媒体类型注册参数比较，以及历史 email quoted-pair 的 CR/LF 形式也未覆盖。因此项目仍不宣称完整 RFC 4287 兼容。详见 [XML parsing scope](docs/XML_PARSING_SCOPE.md)、[leap-second procedure](docs/LEAP_SECONDS.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 ## API 示例
 
@@ -113,11 +115,39 @@ test {
 
 显式入口和统一入口都返回统一的 `Feed` 模型，并保留 typed errors。完整错误匹配见 [可运行示例](examples/basic/main.mbt)。
 
+### 模型、入口和错误处理
+
+源码根包现在重导出 `Feed`、`FeedItem`、`Author`、`Attachment`、`FeedLink`、Podcast 类型和 `FeedFormat`，可直接标注 `let feed : @moonfeed.Feed = @moonfeed.parse(input)`，无需导入内部包。
+
+| 入口 | 结果与用途 |
+| --- | --- |
+| `parse` / `detect_format` | 自动规范化到 Feed / 只探测格式候选 |
+| `parse_json_feed` / `parse_rss` / `parse_atom` | 显式格式；Atom 此入口只接受 Feed |
+| `parse_atom_document` / `parse_atom_document_with_base` | 区分 Feed 与独立 Entry，保留标准元数据和原始/解析后 IRI |
+| `parse_podcast_rss` | Feed 与分离的 show/episodes metadata |
+| `parse_datetime` / `parse_rfc3339` / `parse_rss_datetime` | 原始日期与 UTC Unix 秒 |
+
+`detect_format` 是轻量探测，不验证完整文档；JSON 对象仍可能被 JSON Feed parser 拒绝。独立 Atom Entry 会被识别为 Atom，但应交给 `parse_atom_document`，不能交给返回 Feed 的 `parse` 或 CLI normalize。
+
+| 统一字段 | JSON Feed | RSS | Atom Feed 规范化 |
+| --- | --- | --- | --- |
+| 标题与正文 | title、summary、content_text/html | title、description | title、summary、content（常见文本类型） |
+| 作者与语言 | feed/item 继承与覆盖 | managingEditor / author；channel language 传给 item | feed author 继承；xml:lang 继承、覆盖与清空 |
+| 分类 | tags | 重复 category | category term |
+| 链接与附件 | url、external_url、attachments | link、enclosure | alternate/self、enclosure |
+| 日期 | date_published / date_modified | pubDate / lastBuildDate | published / updated |
+
+集合缺失时为 `[]`，可选值为 `None`。JSON 的显式 null 不等于字段缺失，受支持字段会做类型校验。统一模型没有 feed ID、全部 Atom links、source 等槽位；这些值通过 Atom 文档 API 或 RSS raw API 保留。JSON Feed 的 icon、分页、hubs 等字段目前不保留。
+
+统一入口的 `ParseError` 区分 `Detect`、`JsonFeed`、`Rss`、`Atom`；格式入口直接返回各自 typed error。JSON/语义错误提供字段路径，XML 错误保留底层原因；目前不提供行列号。可运行 `moon run examples/errors` 查看错误处理。CLI 失败写 stderr，退出码为 2。
+
 ## JSON Feed 1.1
 
 支持 `version`、`title`、`description`、`home_page_url`、`feed_url`、`authors`、`language`、`items`，以及条目的 `id`、`title`、`url`、`external_url`、`summary`、`content_text`、`content_html`、`date_published`、`date_modified`、`authors`、`tags` 和 `language`。
 
 `tags` 映射到 `categories`；日期映射到 `published` / `updated`，保留原字符串。条目作者和语言支持继承。当前对支持字段采用严格类型检查，重复 ID、缺少必填字段和无内容条目会拒绝整个 Feed。
+
+源码还支持有序的 `attachments`：必需 `url`、`mime_type`，可选 `title`、整数字节数 `size_in_bytes` 和非负有限秒数 `duration_in_seconds`。字节数按 UInt64 范围校验，保留 JSON core 提供的大整数表示，CLI 不把 UInt64 再舍入成 Double 文本。显式 JSON 入口与自动入口均接受单个开头 BOM。
 
 ## RSS 2.0
 
@@ -146,9 +176,9 @@ let first_episode = podcast.episodes[0]
 let duration = first_episode.duration_in_seconds
 ```
 
-当前识别 RSS 根元素或 channel 上声明的标准 `itunes` namespace URI，并保留 `itunes:` 前缀。节目元数据包括 author、owner、subtitle、summary、explicit、image、category/subcategory、type、complete 和 new-feed-url；单集元数据包括 subtitle、summary、image、duration、episode/season number、episode type、explicit 和 block。显式标记接受 `yes` / `true`、`no` / `false` 与 `clean`，并规范化为 Bool。
+当前按元素作用域识别标准 `itunes:` 前缀的官方 URI；支持根、channel、item 或字段自身声明及子节点重绑定，并保留兄弟作用域。节目元数据包括 author、owner、subtitle、summary、explicit、image、category/subcategory、type、complete 和 new-feed-url；单集元数据包括 subtitle、summary、image、duration、episode/season number、episode type、explicit 和 block。显式标记接受 `yes` / `true`、`no` / `false` 与 `clean`，并规范化为 Bool。
 
-时长接受 `SS`、`MM:SS` 和 `HH:MM:SS`，其中多段格式的秒字段以及三段格式的分钟字段须在 0–59 范围内。无效时长、布尔值或分类属性会返回带字段路径的 RSS typed error。Podcast API 目前只认标准 `itunes:` 前缀和其官方 namespace URI，不解析任意前缀绑定；嵌套分类支持一层子分类。
+时长接受 `SS`、`MM:SS` 和 `HH:MM:SS`，其中多段格式的秒字段以及三段格式的分钟字段须在 0–59 范围内。无效时长、布尔值或分类属性会返回带字段路径的 RSS typed error。Podcast API 目前只认标准 `itunes:` 前缀和其官方 namespace URI，不解析任意前缀绑定；未声明/错误绑定的扩展按历史策略忽略，嵌套分类支持一层子分类。RSS 核心字段只匹配无 namespace 的元素，`xmlns=""` 表示清空默认 namespace。
 
 `itunes:duration` 示例：`01:02:03` 会规范化为 3723 秒，并同时出现在 `podcast.episodes[0].duration_in_seconds` 与 `podcast.feed.items[0].attachments[0].duration_in_seconds` 中。
 
@@ -232,8 +262,6 @@ Malformed optional JSON Feed and RSS dates, and Atom published, do not reject th
 
 ```sh
 moon info
-moon fmt
-moon fmt --check
 moon check
 moon test
 moon build
@@ -242,16 +270,18 @@ moon build --target js
 moon tree
 ```
 
-当前共有 147 个行为测试：原有 117 项保持不变，新增 30 项回归和规范测试，包括 24 项独立 Atom conformance cases、2 项 XML Base/闰秒边界回归和 4 项内部 XML reader 测试。默认与 JS 目标均需通过；CI 还运行构建、示例和 CLI smoke。开发者可在本地执行 `moon fmt --check` 检查格式。Atom 文档、DTD 受限行为、XML Base、结构/作者/内容约束、日期及 RFC 正式向量测试均保留；RSS、JSON Feed、日期及 CLI 回归也保持通过。可运行示例为 `moon run examples/basic` 与 `moon run examples/atom`。
+格式化需使用 v0.10.14 工具链的 `moon fmt` / `moon fmt --check`；v0.10.18 格式器会自动将源码 `Int` 改成旧版本不支持的 `Int32`。本轮保留 `Int` 写法并以 v0.10.14 格式器通过检查；主验证使用 v0.10.18，最低 v0.10.14 也单独通过 160 项双目标测试。`moon.pkg` 没有降级或兼容层。
 
-黑客松初审整改记录见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，重新申报证据见 [十月重新申报材料](docs/HACKATHON_RESUBMISSION_2026_10.md)。矩阵当前为 25 PASS / 2 PARTIAL / 0 FAIL；内部 DTD 的受限支持、MIME 语法和精确 typed error 覆盖均有实现与测试。参数实体/外部 DTD、markup entity replacement 和任意已注册 MIME 参数的比较规则仍未完成；不宣称完整 RFC 4287 兼容。
+当前共有 160 个行为测试，保留原 147 项并新增 13 项针对性回归。旧 JSON 附件忽略断言升级为具体映射断言，CLI 版本断言与 0.2.0 一致；7 个 Podcast XML 样例去掉原先被错误忽略的尾随逗号，字段断言保留。默认与 JS 均通过，六个示例在两目标均可运行。执行 `node scripts/verify.mjs` 可复现全部 check/test/build、示例和 CLI 正反验收；新项目安装见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
+
+黑客松整改见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，申报承诺与实现证据见 [功能实现对照表](docs/申报书功能实现对照表.md)。当前矩阵为 24 PASS / 3 PARTIAL / 0 FAIL；A05 XML 覆盖、A13 obsolete email quoted-pair、A20 注册 MIME 参数语义未完整实现，不宣称完整 RFC 4287 兼容。
 
 贡献流程、测试命令和开源合规说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## Roadmap
 
 - 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes joanna/moonfeed@0.2.0 发布。
-- 当前优先：补齐 XML DTD 参数实体、markup replacement 和验证行为的安全设计；明确剩余媒体类型参数等价边界；闰秒表按公告流程持续人工维护。
+- 当前优先：以申报承诺和实际用户输入驱动修复，维护回归/示例/安装证据；剩余 XML、MIME、email 规范边界见矩阵。DTD validity 验证不是当前 Feed 消费器的必需功能，不为矩阵全绿扩展成通用 XML 工具链；闰秒表继续人工维护。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 

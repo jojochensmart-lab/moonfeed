@@ -1,11 +1,4 @@
 ///|
-fn podcast_extension_enabled(root : Node, channel : Node) -> Bool {
-  let uri = "http://www.itunes.com/dtds/podcast-1.0.dtd"
-  root.attributes.get("xmlns:itunes") == Some(uri) ||
-  channel.attributes.get("xmlns:itunes") == Some(uri)
-}
-
-///|
 fn first_named(parent : Node, name : String) -> Node? {
   match children(parent, name) {
     [first, ..] => Some(first)
@@ -147,23 +140,7 @@ fn podcast_categories(
 ///|
 fn podcast_show_metadata(
   channel : Node,
-  enabled : Bool,
 ) -> @model.PodcastShowMetadata raise ParseError {
-  if !enabled {
-    return {
-      author: None,
-      owner_name: None,
-      owner_email: None,
-      subtitle: None,
-      summary: None,
-      explicit: None,
-      image_url: None,
-      categories: [],
-      podcast_type: None,
-      complete: None,
-      new_feed_url: None,
-    }
-  }
   let owner = first_named(channel, "itunes:owner")
   let image = first_named(channel, "itunes:image")
   {
@@ -194,21 +171,7 @@ fn podcast_show_metadata(
 fn podcast_episode_metadata(
   item : Node,
   index : Int,
-  enabled : Bool,
 ) -> @model.PodcastEpisodeMetadata raise ParseError {
-  if !enabled {
-    return {
-      subtitle: None,
-      summary: None,
-      image_url: None,
-      duration_in_seconds: None,
-      episode_number: None,
-      season_number: None,
-      episode_type: None,
-      explicit: None,
-      block: None,
-    }
-  }
   let path = "channel.item[\{index}]"
   let image = first_named(item, "itunes:image")
   {
@@ -294,11 +257,10 @@ pub fn parse_podcast(input : String) -> @model.PodcastFeed raise ParseError {
     Some(value) => value
     None => raise MissingChannel
   }
-  let enabled = podcast_extension_enabled(root, channel)
-  let show = podcast_show_metadata(channel, enabled)
+  let show = podcast_show_metadata(channel)
   let episodes : Array[@model.PodcastEpisodeMetadata] = []
   for index, item in children(channel, "item") {
-    episodes.push(podcast_episode_metadata(item, index, enabled))
+    episodes.push(podcast_episode_metadata(item, index))
   }
   let feed = feed_with_podcast_durations(normalize(raw), episodes)
   { feed, show, episodes, }

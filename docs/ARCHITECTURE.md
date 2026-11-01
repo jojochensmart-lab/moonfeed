@@ -12,7 +12,7 @@
 - `cli`: Node.js-hosted executable frontend for detect, inspect, and normalized JSON output; it delegates parsing to the public unified entry point.
 - `fixtures/jsonfeed`, `fixtures/rss`, and `fixtures/malformed`: small inputs used by tests and review.
 
-RSS and Atom XML parsing use MoonFeed internal package `src/xmlmini`; it is not re-exported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum and local verification toolchain are MoonBit v0.10.14. CI uses the official latest channel and records the actual installed versions.
+RSS and Atom XML parsing use MoonFeed internal package `src/xmlmini`; it is not re-exported as a standalone XML library. `moon.mod` has no non-core XML dependency. The project minimum is MoonBit v0.10.14; current local verification uses moon 0.1.20261028 / moonc v0.10.18. CI uses the official latest channel and records the actual installed versions.
 
 ## CLI data flow
 
@@ -86,11 +86,11 @@ Text and HTML reject child elements. XHTML requires a single div in the XHTML na
 
 AtomDate applies uppercase T/Z and RFC 3339 calendar rules, preserves fractional digits and -00:00, supports Gregorian year 0000 and recorded positive leap seconds. Leap transitions use public-domain IANA/IERS data through 2017-01-01; the latest announcement review and maintenance process are in [LEAP_SECONDS.md](LEAP_SECONDS.md). POSIX seconds cannot distinguish a leap second from the next second, so raw/leap_second/fractional_digits remain explicit.
 
-The retained XML tree is semantic, not a byte-preserving serializer: comments, processing instructions and original namespace prefixes are not retained. XML declarations (syntax/order/strict placement), general PI skipping, XML Name, physical line endings and literal attribute whitespace are processed. Character references are decoded after physical normalization. Internal DTD text entities and declared default attributes are processed within documented safety and syntax limits; external/parameter entities, replacement markup and full validity checking are not. Namespace URI-reference and Atom IRI checks validate RFC 3986/3987 component grammar, including IPv6/IPvFuture IP-literals; XML Base preserves and resolves LEIRI characters. The email parser accepts obsolete addr-spec forms that can be represented in XML 1.0. Arbitrary registered media-type parameter comparison semantics remain incomplete. See [XML_PARSING_SCOPE.md](XML_PARSING_SCOPE.md) and the [Atom compatibility matrix](ATOM_RFC4287_COMPLIANCE.md).
+The retained XML tree is semantic, not a byte-preserving serializer: comments, processing instructions and original namespace prefixes are not retained. XML declarations (syntax/order/strict placement), general PI skipping, XML Name, physical line endings and literal attribute whitespace are processed. Character references are decoded after physical normalization. Internal DTD text entities and declared default attributes are processed within documented safety and syntax limits; external/parameter entities, replacement markup and full validity checking are not. Namespace URI-reference and Atom IRI checks validate RFC 3986/3987 component grammar, including IPv6/IPvFuture IP-literals; XML Base preserves and resolves LEIRI characters. The email parser accepts common obsolete addr-spec forms and XML-representable DEL; obsolete quoted CR/LF remains unsupported (A13). Arbitrary registered media-type parameter comparison semantics remain incomplete. See [XML_PARSING_SCOPE.md](XML_PARSING_SCOPE.md) and the [Atom compatibility matrix](ATOM_RFC4287_COMPLIANCE.md).
 
 Strict document validation recursively checks explicit xml:lang using RFC3066 syntax without a registry lookup. hreflang uses the same grammar without the XML empty-reset exception. `media.mbt` parses MIME tokens/comments/FWS/quoted parameters and compares parameter multisets while retaining raw values; charset and the RFC 2046 case-insensitive `message/external-body` parameters are normalized, while other parameter values remain case-sensitive by default. Both content dispatch and summary requirements use parsed MIME essence. `src/xmlmini/ip_literal.mbt` validates IPv6/IPvFuture for both namespace references and Atom IRIs; Atom IRI Unicode component ranges are also checked. These are implementation checks, not third-party conformance certification.
 
-See [API_COMPATIBILITY](API_COMPATIBILITY.md) for strict versus legacy behavior and the unpublished release strategy. Only internal reader constructors gain an optional strict_declaration argument; root package signatures and document models are unchanged.
+See [API_COMPATIBILITY](API_COMPATIBILITY.md) for strict versus legacy behavior and published/source release boundaries. Only internal reader constructors gain an optional strict_declaration argument; root package signatures and document models are unchanged.
 
 ## Legacy Atom normalization and migration
 
@@ -119,8 +119,16 @@ RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Inva
 
 ## Verification and growth
 
-The current suite has 147 behavior tests: the 117 baseline tests are unchanged, 24 specification-derived Atom cases are maintained separately in atom_conformance_test.mbt, two XML Base/leap-second boundary tests exercise integration behavior, and four tests cover internal XML reader behavior. CI runs default and JS test/build targets plus both examples and existing CLI smoke tests. It installs the official latest channel and logs versions; local validation uses v0.10.14, while actual CI versions must be read from each run.
+The current suite has 160 tests: all 147 previous tests remain with documented fixture/expectation corrections, plus 13 focused review cases. CI checks default/JS targets, six examples and CLI smoke; local source acceptance is `node scripts/verify.mjs`. The workflow uses official latest and records its actual versions; the final remote result must be matched to its full commit hash, independently of local evidence.
 
 The internal XML reader's DTD and entity policy is documented in [XML_PARSING_SCOPE.md](XML_PARSING_SCOPE.md). It never resolves external identifiers; its internal-subset support is limited to text entities and default attributes and does not amount to complete DTD processing.
 
 Atom consumes the same internal XML event reader and normalizes into the shared model. Podcast RSS metadata is exposed through a separate wrapper so existing Feed and FeedItem layouts stay stable. Datetime normalization preserves source strings and stores normalized UTC instants in adjacent parsed fields.
+
+## Current proposal-driven acceptance (2026-11-01)
+
+Local verification now uses D:\MoonBit, moon 0.1.20261028 / moonc v0.10.18; the stated minimum remains v0.10.14. Root type re-exports are additive. JSON attachment decoding maps ordered resources into existing Attachment fields, validates sizes/durations and retains large-integer representations supplied by core/json. RSS keeps its raw QName reader for historical unbound-prefix behavior, tracking only inherited default and canonical itunes bindings to avoid foreign-field collisions and binding leakage; this is not a new generic namespace processor. Atom continues using NamespaceReader.
+
+All 147 prior tests remain, with 13 targeted additions (160 total). JSON attachment/version expectations were upgraded, and seven malformed Podcast fixture suffixes were corrected; no field assertions were removed. Six executable examples cover JSON, RSS, Atom Feed, Entry, auto detection and errors. `node scripts/verify.mjs` checks both targets and CLI positive/negative behavior; `scripts/verify-registry.mjs` separately validates the exact published 0.2.0 in a fresh consumer.
+
+Current matrix is 24 PASS / 3 PARTIAL / 0 FAIL. The prior A13 email completeness claim is corrected for unsupported obsolete quoted CR/LF. Full DTD validity validation is optional, not a parsing feature promised by the proposal. Final source acceptance and release boundaries: [FINAL_ACCEPTANCE](FINAL_ACCEPTANCE.md).

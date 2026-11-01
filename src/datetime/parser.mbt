@@ -23,7 +23,12 @@ fn number(chars : Array[Char], start : Int, end : Int) -> Int? {
   let mut value = 0
   for index = start; index < end; index = index + 1 {
     match digit(chars[index]) {
-      Some(d) => value = value * 10 + d
+      Some(d) => {
+        if value > (2147483647 - d) / 10 {
+          return None
+        }
+        value = value * 10 + d
+      }
       None => return None
     }
   }

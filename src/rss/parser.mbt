@@ -5,36 +5,62 @@ priv struct Node {
   attributes : Map[String, String]
   children : Array[Node]
   text : StringBuilder
+  default_namespace : String?
+  itunes_namespace : String?
 }
 
 ///|
-fn node(element : @xmlmini.XmlElement) -> Node {
+fn node(element : @xmlmini.XmlElement, parent : Node?) -> Node {
+  let default_namespace = match element.attributes.get("xmlns") {
+    Some("") => None
+    Some(uri) => Some(uri)
+    None =>
+      match parent {
+        Some(p) => p.default_namespace
+        None => None
+      }
+  }
+  let itunes_namespace = match element.attributes.get("xmlns:itunes") {
+    Some(uri) => Some(uri)
+    None =>
+      match parent {
+        Some(p) => p.itunes_namespace
+        None => None
+      }
+  }
   {
     name: element.name,
     attributes: element.attributes,
     children: [],
     text: StringBuilder(),
+    default_namespace,
+    itunes_namespace,
   }
 }
 
 ///|
 fn document(input : String) -> Node raise ParseError {
-  let reader = @xmlmini.Reader::from_string(input)
+  let normalized = if input.has_prefix("\u{FEFF}") {
+    input[1:].to_owned()
+  } else {
+    input
+  }
+  let reader = @xmlmini.Reader::from_string(normalized)
   let stack : Array[Node] = []
   let roots : Array[Node] = []
   while true {
     let event = reader.read_event() catch {
-      _ => raise InvalidXml("malformed XML")
+      @xmlmini.Malformed(message) => raise InvalidXml(message)
     }
     match event {
       Start(element) => {
         if stack.length() >= 256 {
           raise InvalidXml("element depth exceeds 256")
         }
-        stack.push(node(element))
+        stack.push(node(element, stack.last()))
       }
       Empty(element) => {
-        let element = node(element)
+        let element = node(element, stack.last())
         if stack.is_empty() {
           roots.push(element)
         } else {
@@ -54,6 +80,8 @@ fn document(input : String) -> Node raise ParseError {
       Text(text) | CData(text) =>
         if !stack.is_empty() {
           stack[stack.length() - 1].text.write_string(text)
+        } else if !text.trim(chars=" \t\r\n").is_empty() || event is CData(_) {
+          raise InvalidXml("character data outside document element")
         }
       Eof => break
     }
@@ -66,7 +94,15 @@ fn document(input : String) -> Node raise ParseError {
 
 ///|
 fn children(parent : Node, name : String) -> Array[Node] {
-  parent.children.filter(child => child.name == name)
+  parent.children.filter(child => {
+    child.name == name &&
+    (if name.has_prefix("itunes:") {
+      child.itunes_namespace ==
+      Some("http://www.itunes.com/dtds/podcast-1.0.dtd")
+    } else {
+      child.default_namespace is None
+    })
+  })
 }
 
 ///|
@@ -252,7 +288,7 @@ fn parse_item(element : Node, path : String) -> Item raise ParseError {
 ///|
 /// Parse RSS 2.0 core fields while preserving metadata not represented by Feed.
 fn parse_channel(root : Node) -> Channel raise ParseError {
-  if root.name != "rss" || root.attributes.get("xmlns") is Some(_) {
+  if root.name != "rss" || root.default_namespace is Some(_) {
     raise InvalidRequiredField("rss", "expected unnamespaced rss root")
   }
   let version = root.attributes.get("version").unwrap_or("")

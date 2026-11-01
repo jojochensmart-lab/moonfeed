@@ -106,6 +106,126 @@ fn tags(
 }
 
 ///|
+// Interpret an integer-valued JSON number without rounding a retained large
+// integer lexeme through Double. Rescale decimal/exponent notation before the
+// checked UInt64 accumulation; no allocation is proportional to the exponent.
+fn attachment_size(value : Json, path : String) -> UInt64 raise ParseError {
+  guard value is Number(_, ..) else { raise InvalidType(path, "number") }
+  let chars = value.stringify().to_array()
+  let digits : Array[Int] = []
+  let mut fraction = 0
+  let mut after_dot = false
+  let mut pos = 0
+  let negative = chars[0] == '-'
+  if negative {
+    pos += 1
+  }
+  while pos < chars.length() && chars[pos] != 'e' && chars[pos] != 'E' {
+    if chars[pos] == '.' {
+      after_dot = true
+    } else {
+      digits.push(chars[pos].to_int() - '0'.to_int())
+      if after_dot {
+        fraction += 1
+      }
+    }
+    pos += 1
+  }
+  let mut exponent = 0
+  let mut exponent_negative = false
+  if pos < chars.length() {
+    pos += 1
+    if chars[pos] == '-' || chars[pos] == '+' {
+      exponent_negative = chars[pos] == '-'
+      pos += 1
+    }
+    while pos < chars.length() {
+      // Once larger than the input length plus UInt64's decimal width, only
+      // overflow/non-integrality is possible for a nonzero mantissa.
+      if exponent <= chars.length() + 20 {
+        exponent = exponent * 10 + chars[pos].to_int() - '0'.to_int()
+      }
+      pos += 1
+    }
+  }
+  if digits.all(d => d == 0) {
+    return 0UL
+  }
+  if negative {
+    raise InvalidValue(path, "expected nonnegative UInt64 integer")
+  }
+  let mut scale = (if exponent_negative { -exponent } else { exponent }) -
+    fraction
+  let mut end = digits.length()
+  while scale < 0 && end > 0 && digits[end - 1] == 0 {
+    end -= 1
+    scale += 1
+  }
+  let mut start = 0
+  while start < end && digits[start] == 0 {
+    start += 1
+  }
+  if scale < 0 || scale > 20 || end - start + scale > 20 {
+    raise InvalidValue(path, "expected nonnegative UInt64 integer")
+  }
+  let mut result = 0UL
+  for i = start; i < end + scale; i = i + 1 {
+    let digit = if i < end { digits[i].to_uint64() } else { 0UL }
+    if result > (18446744073709551615UL - digit) / 10UL {
+      raise InvalidValue(path, "integer exceeds UInt64 range")
+    }
+    result = result * 10UL + digit
+  }
+  result
+}
+
+///|
+fn attachments(
+  fields : Map[String, Json],
+  path : String,
+) -> Array[@model.Attachment] raise ParseError {
+  let result : Array[@model.Attachment] = []
+  if fields.get("attachments") is Some(value) {
+    for index, value in array(value, path + ".attachments") {
+      let p = path + ".attachments[\{index}]"
+      let fields = object(value, p)
+      let url = required_string(fields, "url", p)
+      let mime_type = required_string(fields, "mime_type", p)
+      if url.is_empty() {
+        raise InvalidValue(p + ".url", "URL must not be empty")
+      }
+      if mime_type.is_empty() {
+        raise InvalidValue(p + ".mime_type", "MIME type must not be empty")
+      }
+      let duration = match fields.get("duration_in_seconds") {
+        None => None
+        Some(Number(n, ..)) => {
+          if n < 0.0 || n.is_inf() || n.is_nan() {
+            raise InvalidValue(
+              p + ".duration_in_seconds",
+              "expected finite nonnegative seconds",
+            )
+          }
+          Some(n)
+        }
+        Some(_) => raise InvalidType(p + ".duration_in_seconds", "number")
+      }
+      result.push({
+        url,
+        mime_type,
+        title: optional_string(fields, "title", p),
+        size_in_bytes: match fields.get("size_in_bytes") {
+          Some(v) => Some(attachment_size(v, p + ".size_in_bytes"))
+          None => None
+        },
+        duration_in_seconds: duration,
+      })
+    }
+  }
+  result
+}
+
+///|
 fn item(
   value : Json,
   path : String,
@@ -149,7 +269,7 @@ fn item(
     updated_at,
     language,
     categories: tags(fields, path),
-    attachments: [],
+    attachments: attachments(fields, path),
   }
 }
 
@@ -157,7 +277,12 @@ fn item(
 /// Decode JSON Feed 1.1 into the unified model. No network or filesystem access.
 /// Unsupported fields are ignored. Date strings are preserved and parsed best-effort; URLs are retained without validation.
 pub fn parse(input : String) -> @model.Feed raise ParseError {
-  let value = @json.parse(input) catch {
+  let normalized = if input.has_prefix("\u{FEFF}") {
+    input[1:].to_owned()
+  } else {
+    input
+  }
+  let value = @json.parse(normalized) catch {
     error => raise InvalidJson(error.to_string())
   }
   let fields = object(value, "$")

@@ -1,0 +1,37 @@
+///|
+test "registry JSON Feed through unified public API" {
+  let feed = @moonfeed.parse("{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"Installed\",\"items\":[{\"id\":\"one\",\"content_text\":\"body\"}]}")
+  assert_eq(feed.title, "Installed")
+  assert_eq(feed.items.length(), 1)
+  assert_eq(feed.items[0].content_text, Some("body"))
+}
+
+///|
+test "registry RSS and XML enclosure are included" {
+  let feed = @moonfeed.parse_rss("<rss version=\"2.0\"><channel><title>RSS</title><link>https://example.org/</link><description>D</description><item><guid>one</guid><description>Text &amp; XML</description><enclosure url=\"audio\" type=\"audio/mpeg\" length=\"42\"/></item></channel></rss>")
+  assert_eq(feed.items[0].id, "one")
+  assert_eq(feed.items[0].summary, Some("Text & XML"))
+  assert_eq(feed.items[0].attachments[0].size_in_bytes, Some(42UL))
+}
+
+///|
+test "registry Atom Feed and independent prefixed Entry APIs" {
+  let xml = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:f</id><title>Atom</title><updated>2026-10-01T12:00:00Z</updated><author><name>A</name></author><entry><id>urn:e</id><title>E</title><updated>2026-10-01T12:00:00Z</updated><content>Body</content></entry></feed>"
+  assert_eq(@moonfeed.parse_atom(xml).items[0].content_text, Some("Body"))
+  match @moonfeed.parse_atom_document(xml) {
+    @moonfeed.AtomDocument::FeedDocument(feed) => assert_eq(feed.entries[0].effective_authors[0].name, "A")
+    _ => fail("expected Feed Document")
+  }
+  match @moonfeed.parse_atom_document("<x:entry xmlns:x=\"http://www.w3.org/2005/Atom\" xml:base=\"https://example.org/a/\"><x:id>urn:e</x:id><x:title>E</x:title><x:updated>2026-10-01T12:00:00Z</x:updated><x:author><x:name>A</x:name></x:author><x:link href=\"../article\"/><x:content>Body</x:content></x:entry>") {
+    @moonfeed.AtomDocument::EntryDocument(entry) => assert_eq(entry.metadata.links[0].href.resolved, "https://example.org/article")
+    _ => fail("expected Entry Document")
+  }
+}
+
+///|
+test "registry format detection dates and errors are public" {
+  assert_true(@moonfeed.detect_format("<rss version=\"2.0\"/>") is Rss)
+  assert_eq(@moonfeed.parse_datetime("2002-10-02T15:00:00+02:00").unix_seconds, 1033563600L)
+  let rejected = try { ignore(@moonfeed.parse("<html/>")); false } catch { @moonfeed.Detect(_) => true; _ => false }
+  assert_true(rejected)
+}
