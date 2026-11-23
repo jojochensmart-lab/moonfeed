@@ -69,9 +69,9 @@ test "RSS typed errors identify required fields" {
   )
   assert_true(
     rss_error(
-      "<rss version=\"2.0\"><channel><title>x</title><link>x</link><description>x</description><item><title>x</title></item></channel></rss>",
+      "<rss version=\"2.0\"><channel><title>x</title><link>x</link><description>x</description><item><guid>id</guid></item></channel></rss>",
     )
-    is @rss.InvalidRequiredField(_, _),
+    is @rss.InvalidRequiredField("channel.item[0].title|description", _),
   )
 }
 
@@ -114,15 +114,16 @@ test "RSS description is retained in summary and HTML" {
 }
 
 ///|
-test "RSS missing guid and link is rejected without random identity" {
-  assert_true(
-    rss_error(
-      (
-        #|<rss version="2.0"><channel><title>x</title><link>l</link><description>d</description><item><title>orphan</title></item></channel></rss>
-      ),
-    )
-    is @rss.InvalidRequiredField("channel.item[0].id", _),
+test "RSS missing guid and link is retained without random identity" {
+  let feed = @moonfeed.parse_rss(
+    (
+      #|<rss version="2.0"><channel><title>x</title><link>l</link><description>d</description><item><title>orphan</title></item></channel></rss>
+    ),
   )
+  @test.assert_eq(feed.items.length(), 1)
+  @test.assert_eq(feed.items[0].title, Some("orphan"))
+  @test.assert_eq(feed.items[0].id, "")
+  @test.assert_eq(feed.items[0].url, None)
 }
 
 ///|

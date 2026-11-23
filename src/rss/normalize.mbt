@@ -16,17 +16,15 @@ fn item_authors(author : String?) -> Array[@model.Author] {
 }
 
 ///|
-fn item_id(item : Item, path : String) -> String raise ParseError {
+fn item_id(item : Item) -> String {
   match item.guid {
     Some(guid) => guid.value
     None =>
       match item.link {
         Some(link) if !link.is_empty() => link
-        _ =>
-          raise InvalidRequiredField(
-            path + ".id",
-            "guid or link is required for a stable item identity",
-          )
+        // RSS does not require an identity. Keep the public String field while
+        // representing an absent source identity without inventing a value.
+        _ => ""
       }
   }
 }
@@ -49,11 +47,19 @@ fn normalize_item(
   language : String?,
 ) -> @model.FeedItem raise ParseError {
   let path = "channel.item[\{index}]"
+  // Channel/Item are publicly constructible, so normalize must also enforce
+  // the RSS content requirement independently of parse_raw.
+  if item.title is None && item.description is None {
+    raise InvalidRequiredField(
+      path + ".title|description",
+      "at least one must be present",
+    )
+  }
   let description = item.description
   let published = item.pub_date
   let published_at = @datetime.parse_optional_datetime(published)
   {
-    id: item_id(item, path),
+    id: item_id(item),
     title: item.title,
     url: item.link,
     external_url: None,

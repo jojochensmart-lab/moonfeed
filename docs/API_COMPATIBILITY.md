@@ -1,5 +1,13 @@
 # Atom API 兼容与版本策略
 
+## 2026-11-23 RSS/XML 正式验收整改（Unreleased）
+
+公开函数签名、错误 variant、模型字段及类型均未变化。`FeedItem.id` 保持 `String`，RSS 的来源 guid 优先、非空 link 回退策略保持不变；两者缺失时由错误改为 `id = ""` 表示没有来源标识，缺少 link 的 `url` 仍是 `None`，raw `Item.guid/link` 仍是 `None`。空字符串不是生成 ID，也不保证唯一；应用去重前应检查非空，身份策略由应用决定，不得把 channel link 当条目链接。JSON Feed/Atom 的 ID 要求不变。
+
+RSS parse_raw 与公开 normalize 都检查 title/description 至少存在一个；只有 guid 或只有 link 的 item 仍不合法。共享 Reader/NamespaceReader 新增文档级结构校验，完整读取到 Eof 时拒绝根外文本/引用/CDATA、多个根或无根文档，合法空白、注释和 PI 保留。曾把事件 Reader 当作片段 tokenizer 的调用方应提供完整 XML 文档；轻量 detect_format 不是全文校验。
+
+原 160 项保留，20 项新测试合计默认/JS 各 180/180。两处与 RSS 规范冲突的旧预期已更正并加强具体字段/错误路径断言。RFC 4287 仍为 24 PASS / 3 PARTIAL / 0 FAIL。详见 [专项整改报告](RSS20_FORMAL_ACCEPTANCE_FIX.md)；最终交付先独立审计及回归，再提交并普通推送验证对应 HEAD 的 CI。本轮不发布 Mooncakes，0.2.0 不包含这些修复。
+
 | 入口 | 返回与文档种类 | 校验与信息保留 |
 | --- | --- | --- |
 | `parse(input)` | 统一 `Feed`；自动探测 JSON Feed/RSS/Atom Feed | 历史格式规范化行为，不是完整 Atom validator |

@@ -764,6 +764,11 @@ fn Reader::declaration(self : Reader) -> Unit raise XmlError {
 fn Reader::text(self : Reader) -> XmlEvent raise XmlError {
   let b = StringBuilder()
   while self.peek() is Some(c) && c != '<' {
+    // XML Misc permits literal S, not character data or entity references.
+    // Check before decoding so an encoded space cannot bypass the rule.
+    if self.tags.is_empty() && c != ' ' && c != '\t' && c != '\r' && c != '\n' {
+      raise Malformed("character data outside document element")
+    }
     b.write_char(self.take())
   }
   let value = b.to_string()
@@ -822,6 +827,11 @@ fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
 
 ///|
 fn Reader::start(self : Reader) -> XmlEvent raise XmlError {
+  // Seen + an empty open-tag stack means the sole document element ended.
+  // This covers both <root/> and <root>...</root> without restricting children.
+  if self.tags.is_empty() && self.document_element_seen {
+    raise Malformed("multiple document elements")
+  }
   self.expect('<')
   let n = self.name()
   let a = self.apply_attribute_declarations(n, self.attrs())
@@ -877,9 +887,15 @@ pub fn Reader::read_event(self : Reader) -> XmlEvent raise XmlError {
     if !self.tags.is_empty() {
       raise Malformed("unclosed element")
     }
+    if !self.document_element_seen {
+      raise Malformed("missing document element")
+    }
     return Eof
   }
   if self.starts("<![CDATA[") {
+    if self.tags.is_empty() {
+      raise Malformed("CDATA outside document element")
+    }
     self.pos += 9
     return CData(self.until("]]>"))
   }

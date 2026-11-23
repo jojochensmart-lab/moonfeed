@@ -66,7 +66,7 @@ The raw public RSS types retain channel metadata such as generator, docs, ttl, i
 - channel categories map to `Feed.categories`;
 - `lastBuildDate`, falling back to `pubDate`, maps to `Feed.updated`;
 - item guid maps to `FeedItem.id`; if absent, nonempty item link is the stable fallback;
-- an item with neither guid nor link returns `InvalidRequiredField` instead of receiving a random ID;
+- an item with neither guid nor nonempty link has `id = ""` to represent an absent source identity without changing the public String field or generating a value; missing link remains `url = None`, and raw guid/link remain optional;
 - item title and link map to `title` and `url`;
 - item description is retained as both `summary` and `content_html` because RSS does not declare its markup semantics;
 - author becomes an `Author` with `name`; repeated categories become `FeedItem.categories`;
@@ -115,11 +115,11 @@ Invalid optional JSON Feed/RSS dates and Atom published values do not reject the
 
 Atom also raises InvalidXml, InvalidAtomRoot, and InvalidRequiredField errors with paths such as feed.entry[2].link[1].href or feed.entry[1].category[0].term.
 
-RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Invalid XML, unsupported versions, missing channel/title/link/description, invalid enclosure attributes, and missing stable item identity are distinguished. The operation is atomic and does not return partial feeds.
+RSS raises typed errors with paths such as `channel.item[2].enclosure.url`. Invalid XML, unsupported versions, missing channel/title/link/description, invalid enclosure attributes, and items missing both title and description are distinguished. Both parse_raw and direct normalize enforce item content presence. The operation is atomic and does not return partial feeds; identity absence alone is valid RSS.
 
 ## Verification and growth
 
-The current suite has 160 tests: all 147 previous tests remain with documented fixture/expectation corrections, plus 13 focused review cases. CI checks default/JS targets, six examples and CLI smoke; local source acceptance is `node scripts/verify.mjs`. The workflow uses official latest and records its actual versions; the final remote result must be matched to its full commit hash, independently of local evidence.
+The current suite has 180 tests: the 160-test previous delivery remains, with two RSS expectations corrected and 20 formal-acceptance regression cases added. CI checks default/JS targets, six examples and CLI smoke; local source acceptance is `node scripts/verify.mjs`. Final delivery requires independent audit, regression, a normal push and CI verification for that exact commit. The workflow uses official latest and records its actual versions; local evidence or historical runs alone do not establish the new remote result. This delivery does not publish Mooncakes.
 
 The internal XML reader's DTD and entity policy is documented in [XML_PARSING_SCOPE.md](XML_PARSING_SCOPE.md). It never resolves external identifiers; its internal-subset support is limited to text entities and default attributes and does not amount to complete DTD processing.
 
@@ -129,6 +129,6 @@ Atom consumes the same internal XML event reader and normalizes into the shared 
 
 Local verification now uses D:\MoonBit, moon 0.1.20261028 / moonc v0.10.18; the stated minimum remains v0.10.14. Root type re-exports are additive. JSON attachment decoding maps ordered resources into existing Attachment fields, validates sizes/durations and retains large-integer representations supplied by core/json. RSS keeps its raw QName reader for historical unbound-prefix behavior, tracking only inherited default and canonical itunes bindings to avoid foreign-field collisions and binding leakage; this is not a new generic namespace processor. Atom continues using NamespaceReader.
 
-All 147 prior tests remain, with 13 targeted additions (160 total). JSON attachment/version expectations were upgraded, and seven malformed Podcast fixture suffixes were corrected; no field assertions were removed. Six executable examples cover JSON, RSS, Atom Feed, Entry, auto detection and errors. `node scripts/verify.mjs` checks both targets and CLI positive/negative behavior; `scripts/verify-registry.mjs` separately validates the exact published 0.2.0 in a fresh consumer.
+The previous 147-test baseline received 13 targeted additions (160 total); the later formal RSS/XML remediation adds 20 more (180 total). JSON attachment/version expectations were upgraded, and seven malformed Podcast fixture suffixes were corrected; no field assertions were removed. Six executable examples cover JSON, RSS, Atom Feed, Entry, auto detection and errors. `node scripts/verify.mjs` checks both targets and CLI positive/negative behavior; `scripts/verify-registry.mjs` separately validates the exact published 0.2.0 in a fresh consumer, not these Unreleased fixes.
 
 Current matrix is 24 PASS / 3 PARTIAL / 0 FAIL. The prior A13 email completeness claim is corrected for unsupported obsolete quoted CR/LF. Full DTD validity validation is optional, not a parsing feature promised by the proposal. Final source acceptance and release boundaries: [FINAL_ACCEPTANCE](FINAL_ACCEPTANCE.md).

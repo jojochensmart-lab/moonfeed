@@ -26,6 +26,8 @@ pub(all) struct FeedLink {
 
 ///|
 /// Format-independent item. Original date strings are preserved alongside optional normalized UTC instants.
+/// RSS id is the source guid, otherwise a nonempty link, otherwise "" (absent).
+/// An empty RSS id is not a generated identity or a unique deduplication key.
 pub(all) struct FeedItem {
   id : String
   title : String?

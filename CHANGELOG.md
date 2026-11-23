@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Formal RSS acceptance fix (2026-11-23): accept title-only, description-only and mixed items without optional guid/link. Preserve source guid/link priority; represent absent unified IDs as an empty String and missing URLs as None without fabricating identity. Keep the title-or-description requirement in both parsing and direct normalization.
+- Enforce the one-root XML document boundary in the shared Reader/NamespaceReader: reject root-external text, references, CDATA, additional roots and missing roots; consume and validate trailing comments/processing instructions while accepting XML whitespace and legal Misc. Existing RSS/Atom entry-point guards remain as a backstop.
+- Add 20 independent regression tests (180 total on default/JS), update two obsolete RSS expectations to standard-conforming assertions, and extend real-process CLI smoke for the formal feedback. See `docs/RSS20_FORMAL_ACCEPTANCE_FIX.md`. GitHub delivery follows independent audit and final regression; these fixes remain Unreleased and no Mooncakes publication is performed.
+
 - Final delivery audit (2026-11-02): synchronize technical application supplements without overwriting originals; document three remaining Atom limits, propose 0.3.0 for the functional additions, and exclude the legacy tracked application filename from package archives.
 
 - Complete JSON Feed attachment mapping and validation, align explicit JSON BOM handling, and expose common model/format types from the root package without changing existing model layouts.

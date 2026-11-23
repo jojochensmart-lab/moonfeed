@@ -1,11 +1,21 @@
 # MoonFeed 可复现验收
 
+## 2026-11-23 正式 RSS/XML 专项整改与最终交付
+
+基线为 `9f9b407`，开始时默认目标 160/160、check/build 通过。专项修复先完成本地验证，最终交付重新独立审计后提交、普通推送并核验对应 HEAD 的 CI；不得将旧 HEAD 的 CI 或 registry 0.2.0 当作本轮修复证据。本轮不发布 Mooncakes。
+
+- 仅 description、仅 title、两者都有且无 guid/link 的 RSS item 均可解析；来源标识缺失用 `id = ""`，URL 缺失用 `None`，不伪造 ID。
+- 缺少 title 和 description 的 item（即使有 guid/link）继续按字段路径拒绝。公开 raw 模型和直接 normalize 同样保持此约束。
+- 共享 XML Reader 统一拒绝根外文本、引用、CDATA、第二个根和无根文档；合法根外空白、注释、PI 可用，非法或未闭合的尾随标记会失败。
+- 当前源码默认和 JS 各 180/180，原 160 项保留，新增 20 项；两处旧 RSS 不合规范的错误预期已更正。check/build 双目标、六示例双目标、CLI 正反 smoke 通过；无第三方依赖。
+- 完整说明、复现输入及测试分布见 [RSS20_FORMAL_ACCEPTANCE_FIX](RSS20_FORMAL_ACCEPTANCE_FIX.md)。旧安装验收继续只证明已发布 0.2.0 可调用，不证明 registry 已含本修复；本轮不重新发布。
+
 ## 两套证据的版本边界
 
 - 已发布 `joanna/moonfeed@0.2.0`：从 registry 新建项目安装，验证已发布 API 可调用。
 - 当前源码工作区：含本轮 Unreleased 改进。源码测试结果不能冒充新发布版本，历史 GitHub Actions 也不能替代最终交付提交的远端验证。
 
-当前本地工具链：Moon CLI 0.1.20261028 / moonc v0.10.18+6c83a7f62，Node.js v24.22.1。源码最低要求仍为 MoonBit v0.10.14；CI 使用官方 latest 并输出版本。
+当前本地工具链：Moon CLI 0.1.20261028 / moonc v0.10.18+6c83a7f62，Node.js v24.22.3。源码最低要求仍为 MoonBit v0.10.14；CI 使用官方 latest 并输出版本。
 
 ## 源码完整验收
 
@@ -31,7 +41,7 @@ moon fmt
 moon fmt --check
 ```
 
-`moon info` 使用主工具链更新接口；格式化命令必须在 v0.10.14 工具链环境执行，以保持源码最低语法。实测 v0.10.18 格式器会自动迁移 Int 为 Int32，后者会使 v0.10.14 编译报类型不存在。本轮已恢复 Int 写法，使用 v0.10.14 格式器通过检查，并在最低版本默认/JS 各通过 160 项测试。主工具链仍为 v0.10.18；没有降级 moon.pkg、引入兼容层或提高最低版本。生成 mbti 中的 Int32 是新编译器的接口显示，源码需保持可被最低版本解析。
+`moon info` 使用主工具链更新接口；格式化命令必须在 v0.10.14 工具链环境执行，以保持源码最低语法。实测 v0.10.18 格式器会自动迁移 Int 为 Int32，后者会使 v0.10.14 编译报类型不存在。本轮保留 Int 写法，使用 v0.10.14 格式器通过检查，并在最低版本默认/JS 各通过 180 项测试，check/build 双目标通过。主工具链仍为 v0.10.18；没有降级 moon.pkg、引入兼容层或提高最低版本。生成 mbti 中的 Int32 是新编译器的接口显示，源码需保持可被最低版本解析。
 
 ## 示例对应验收路径
 
@@ -69,17 +79,17 @@ moon package
 
 ## 本轮验收结论与人工事项
 
-本轮源码默认/JS 各 160/160；原 147 项保留，新增 13 项针对性测试。六示例双目标及 CLI 正反 smoke 通过，依赖树为空；无公开 API 删除或模型字段布局变更。新增功能与校验收紧见 CHANGELOG 和 API_COMPATIBILITY。
+当前源码默认/JS 各 180/180；上一轮 160 项保留，新增 20 项 RSS/XML 专项测试。六示例双目标及 CLI 正反 smoke 通过，依赖树为空；无公开 API 删除或模型字段布局变更。空 RSS ID 是缺失值，调用方不要将其当唯一键；行为修正与校验收紧见 CHANGELOG 和 API_COMPATIBILITY。
 
 RFC 矩阵为 24 PASS / 3 PARTIAL / 0 FAIL：XML 输入覆盖、任意注册 MIME 参数等价、历史 email quoted CR/LF 仍未完整。DTD validity 验证与联网抓取不应混同为 Atom 消费器的必需功能。若评审要求完整 RFC，须先约定并完成这些标准边界。
 
-申报技术状态已同步到独立的 [终审申报补充说明](终审申报补充说明.md)，原件保持不变。本次已获授权提交、普通推送并核验最新 HEAD 的 CI；实际 hash/run URL/结果记录在最终交付报告。后续发布仍需统一候选版本、完成对应 CI、取得发布授权，并从 registry 精确安装复现；本轮不执行 Mooncakes 发布。
+上轮申报技术状态已同步到独立的 [终审申报补充说明](终审申报补充说明.md)，原件保持不变。上轮提交 `9f9b407` 已推送并通过 CI；本轮最终交付必须核对新的完整 HEAD、origin/main 与 Actions headSha 一致，并逐项确认 check、默认/JS test/build、示例和 CLI smoke 的结果。后续发布仍需统一候选版本、完成对应 CI、取得发布授权，并从 registry 精确安装复现；当前 GitHub 源码修复不等于 0.2.0 registry 包已更新。
 
 
-最终实际 ZIP 清单检查：两份申报书原件均为 0 条命中；解析器、xmlmini、示例与验收脚本均实际存在。这个 ZIP 只是本地 package 验收产物，没有上传 registry。Registry 调用样例单独保存在 `scripts/registry-smoke.mbt.txt`，不占用库的测试数量。
+上轮最终实际 ZIP 清单检查：两份申报书原件均为 0 条命中；解析器、xmlmini、示例与验收脚本均实际存在。这个 ZIP 只是本地 package 验收产物，没有上传 registry。Registry 调用样例单独保存在 `scripts/registry-smoke.mbt.txt`，不占用库的测试数量。本轮不以这份旧 ZIP 代替新源码验收。
 
 
-## 本轮文件清单
+## 2026-11-02 上轮交付文件清单（历史）
 
 - `.github/workflows/ci.yml`
 - `.moonignore`

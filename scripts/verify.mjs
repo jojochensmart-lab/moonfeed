@@ -49,6 +49,43 @@ const stdin = '\uFEFF{"version":"https://jsonfeed.org/version/1.1","title":"stdi
 const encoded = command(['normalize', '-'], { input: stdin }).stdout;
 assert.equal(JSON.parse(encoded).items[0].language, 'zh-CN');
 assert.match(encoded, /"size_in_bytes":\s*18446744073709551615/);
+// Formal RSS acceptance: optional identity and document-level XML validation.
+const rss = items => '<rss version="2.0"><channel><title>News</title>' +
+  '<link>https://example.org/</link><description>Feed</description>' + items + '</channel></rss>';
+const bodyOnly = rss('<item><description>这是一条新闻正文</description></item>');
+for (const [prefix, suffix] of [
+  ['', ''], [' \t\r\n', ' \t\r\n'],
+  ['<!--before-->', '<!-- valid trailing comment -->'],
+  ['<?audit before?>', '<?audit complete?>'],
+]) {
+  const result = command(['normalize', '-'], { input: prefix + bodyOnly + suffix });
+  assert.equal(result.stderr, '');
+  const feed = JSON.parse(result.stdout);
+  assert.equal(feed.title, 'News');
+  assert.equal(feed.items.length, 1);
+  assert.equal(feed.items[0].id, '');
+  assert.equal(feed.items[0].url, null);
+  assert.equal(feed.items[0].title, null);
+  assert.equal(feed.items[0].content_html, '这是一条新闻正文');
+}
+const titled = JSON.parse(command(['normalize', '-'], {
+  input: rss('<item><title>只有标题的新闻</title></item>'),
+}).stdout).items[0];
+assert.equal(titled.title, '只有标题的新闻');
+assert.equal(titled.id, '');
+assert.equal(titled.url, null);
+for (const input of [
+  'INVALID' + bodyOnly, bodyOnly + 'INVALID', bodyOnly + '<other/>',
+  bodyOnly + '<unfinished', bodyOnly + '<!-- invalid -- comment -->',
+  bodyOnly + '<?audit incomplete', bodyOnly + '<?xml version="1.0"?>',
+  rss('<item/>'), rss('<item><guid>id</guid></item>'),
+  rss('<item><link>https://example.org/a</link></item>'),
+]) {
+  const result = command(['normalize', '-'], { input, expected: 2 });
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /failed to parse/);
+}
+console.log('Formal RSS/XML CLI PASS: optional identity, XML Misc, malformed boundaries, missing content');
 for (const [args, input, error] of [
   [['normalize', '-'], '', /input is empty/],
   [['normalize', '-'], '{bad}', /failed to parse/],

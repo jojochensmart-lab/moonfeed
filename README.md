@@ -157,12 +157,14 @@ test {
 
 - channel `link` → `Feed.home_page_url`；channel `category` → `Feed.categories`。
 - channel `lastBuildDate` 优先、否则 `pubDate` → `Feed.updated`；选中的原始字符串保留，成功解析时另提供 Feed.updated_at。item pubDate 映射到 published / published_at。
-- item `guid` → `FeedItem.id`；缺失 guid 时使用非空 `link`；两者都缺失时返回 `InvalidRequiredField`，不生成随机 ID。
+- item 必须至少包含 `title` 或 `description`，不要求 `guid` 或 `link`。`guid` → `FeedItem.id`；缺失 guid 时使用非空 `link`；两者都缺失时 `id = ""` 表示来源标识缺失，`url = None`（缺少 link），不生成随机 ID、假 URL 或内容哈希。不要将空 ID 用作唯一去重键；raw RSS API 保留 `guid/link` 的 `None`。
 - item `description` → `summary` 和 `content_html`；RSS 不声明内容是否为 HTML，因此保留同一原始值。
 - item `author` → 单个 `Author.name`；item `category` → `FeedItem.categories`。
 - `enclosure` 的 `url`、`type`、`length` → `Attachment.url`、`mime_type`、`size_in_bytes`。
 
 RSS 错误包括 `InvalidXml`、`UnsupportedRssVersion`、`MissingChannel`、channel 必填字段错误、`InvalidEnclosure` 和带字段路径的 `InvalidRequiredField`。
+
+例如 `<item><description>这是一条新闻正文</description></item>` 或仅有 `<title>` 的条目都能解析。共享 XML Reader 要求完整文档只有一个根元素，根外只允许 XML 空白、合法注释和处理指令；普通文本、CDATA、字符引用或第二个根元素会返回 XML 错误。`detect_format` 仍然只检查前缀，不能代替完整解析。专项测试与版本边界见 [正式验收整改报告](docs/RSS20_FORMAL_ACCEPTANCE_FIX.md)；本修复为 Unreleased，尚未包含在 registry 的 0.2.0。
 
 ## RSS Podcast extensions
 
@@ -270,9 +272,9 @@ moon build --target js
 moon tree
 ```
 
-格式化需使用 v0.10.14 工具链的 `moon fmt` / `moon fmt --check`；v0.10.18 格式器会自动将源码 `Int` 改成旧版本不支持的 `Int32`。本轮保留 `Int` 写法并以 v0.10.14 格式器通过检查；主验证使用 v0.10.18，最低 v0.10.14 也单独通过 160 项双目标测试。`moon.pkg` 没有降级或兼容层。
+格式化需使用 v0.10.14 工具链的 `moon fmt` / `moon fmt --check`；v0.10.18 格式器会自动将源码 `Int` 改成旧版本不支持的 `Int32`。本轮保留 `Int` 写法并以 v0.10.14 格式器通过检查；主验证使用 v0.10.18，最低 v0.10.14 也单独通过 180 项双目标测试。`moon.pkg` 没有降级或兼容层。
 
-当前共有 160 个行为测试，保留原 147 项并新增 13 项针对性回归。旧 JSON 附件忽略断言升级为具体映射断言，CLI 版本断言与 0.2.0 一致；7 个 Podcast XML 样例去掉原先被错误忽略的尾随逗号，字段断言保留。默认与 JS 均通过，六个示例在两目标均可运行。执行 `node scripts/verify.mjs` 可复现全部 check/test/build、示例和 CLI 正反验收；新项目安装见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
+当前共有 180 个行为测试：上一轮 160 项全部保留，本轮新增 20 项 RSS/XML 专项回归。两处旧 RSS 错误预期按规范更正：只含 title 的条目改为逐字段成功断言；必需字段错误改用只有 guid、没有 title/description 的条目并断言具体路径。没有删除或跳过测试。默认与 JS 均通过，六个示例在两目标均可运行。执行 `node scripts/verify.mjs` 可复现全部 check/test/build、示例和 CLI 正反验收，包括无 guid/link 的正文条目与非法 XML 边界；新项目安装见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
 
 黑客松整改见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，申报承诺与实现证据见 [功能实现对照表](docs/申报书功能实现对照表.md)。当前矩阵为 24 PASS / 3 PARTIAL / 0 FAIL；A05 XML 覆盖、A13 obsolete email quoted-pair、A20 注册 MIME 参数语义未完整实现，不宣称完整 RFC 4287 兼容。
 

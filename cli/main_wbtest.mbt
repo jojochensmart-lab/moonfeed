@@ -71,3 +71,18 @@ test "CLI retains item language and exact attachment size in normalized JSON" {
     encoded.stringify().contains("\"size_in_bytes\":18446744073709551615"),
   )
 }
+
+///|
+test "CLI normalizes RSS without guid or link without inventing values" {
+  let feed = @moonfeed.parse_rss(
+    "<rss version='2.0'><channel><title>F</title><link>https://e.test/</link><description>D</description><item><description>正文</description></item></channel></rss>",
+  )
+  guard feed_json(feed) is Object(fields) &&
+    fields.get("items") is Some(Array([Object(item)])) else {
+    abort("expected one normalized RSS item")
+  }
+  assert_eq(item.get("id"), Some(Json::string("")))
+  assert_eq(item.get("url"), Some(Json::null()))
+  assert_eq(item.get("title"), Some(Json::null()))
+  assert_eq(item.get("content_html"), Some(Json::string("正文")))
+}
