@@ -37,7 +37,7 @@ test "empty collections and attachments serialize consistently" {
 ///|
 test "help and version are stable" {
   assert_true(help_text().contains("moonfeed normalize <file|->"))
-  assert_eq(VERSION, "0.2.0")
+  assert_eq(VERSION, "0.3.0")
 }
 
 ///|

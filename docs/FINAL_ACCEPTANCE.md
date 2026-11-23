@@ -1,5 +1,11 @@
 # MoonFeed 可复现验收
 
+## 0.3.0 发布验收（当前）
+
+0.3.0 汇集此前未发布的功能及 RSS/XML 专项修复，源码功能基线为 `1882818`。版本准备只更新版本元数据、CLI 版本常量/对应断言、安装验证脚本及技术文档；解析业务逻辑保持不变。发布顺序为本地回归与包审计、版本提交及对应成功 CI、官方 moon publish、仓库外 registry 安装复现。实际包文件数、发布时间及最终 HEAD 以真实交付记录为准。
+
+完整版本内容与边界见 [RELEASE_0.3.0](RELEASE_0.3.0.md)。以下专项轮的“本轮不发布”属于当时的历史操作边界；当前授权发布的是 0.3.0，不覆盖旧版本。
+
 ## 2026-11-23 正式 RSS/XML 专项整改与最终交付
 
 基线为 `9f9b407`，开始时默认目标 160/160、check/build 通过。专项修复先完成本地验证，最终交付重新独立审计后提交、普通推送并核验对应 HEAD 的 CI；不得将旧 HEAD 的 CI 或 registry 0.2.0 当作本轮修复证据。本轮不发布 Mooncakes。
@@ -10,10 +16,10 @@
 - 当前源码默认和 JS 各 180/180，原 160 项保留，新增 20 项；两处旧 RSS 不合规范的错误预期已更正。check/build 双目标、六示例双目标、CLI 正反 smoke 通过；无第三方依赖。
 - 完整说明、复现输入及测试分布见 [RSS20_FORMAL_ACCEPTANCE_FIX](RSS20_FORMAL_ACCEPTANCE_FIX.md)。旧安装验收继续只证明已发布 0.2.0 可调用，不证明 registry 已含本修复；本轮不重新发布。
 
-## 两套证据的版本边界
+## 源码与 registry 证据的版本边界
 
-- 已发布 `joanna/moonfeed@0.2.0`：从 registry 新建项目安装，验证已发布 API 可调用。
-- 当前源码工作区：含本轮 Unreleased 改进。源码测试结果不能冒充新发布版本，历史 GitHub Actions 也不能替代最终交付提交的远端验证。
+- 当前发布版本为 `joanna/moonfeed@0.3.0`，包含完整 RSS/XML 修复、JSON 附件及公开类型增量；需由实际 registry 查询、安装和调用确认发布成功。
+- 已发布的 0.2.0 是历史基线，不含此次增量。源码测试结果不能冒充 registry 安装验证，历史 GitHub Actions 也不能替代发布提交的远端验证。
 
 当前本地工具链：Moon CLI 0.1.20261028 / moonc v0.10.18+6c83a7f62，Node.js v24.22.3。源码最低要求仍为 MoonBit v0.10.14；CI 使用官方 latest 并输出版本。
 
@@ -62,11 +68,11 @@ moon fmt --check
 node scripts/verify-registry.mjs D:/DevCache/Temp/moonfeed-install-review
 ```
 
-目标目录必须不存在；脚本不会覆盖既有目录。它使用正式 `moon new` 和 `moon add joanna/moonfeed@0.2.0`，不复制仓库源码、不设置 moon.work、不使用 GitHub/path dependency；正常使用 registry 的下载与缓存机制。
+目标目录必须不存在且在仓库外；脚本不会覆盖既有目录。它使用正式 `moon new` 和不带版本的 `moon add joanna/moonfeed`，随后必须断言 manifest 锁定 `joanna/moonfeed@0.3.0`，不复制库源码、不设置 moon.work、不使用 GitHub/path dependency；正常使用 registry 的下载与缓存机制。
 
-写入调用方自己的四个 smoke 测试，依次验证 JSON Feed、RSS enclosure、Atom Feed/独立 Entry、格式/日期/异常处理，再执行默认 wasm-gc 与 JS 的 check/test/build 和依赖树。`moon.pkg` 的仅测试导入应使用 `for "test"`；0.2.0 的 FeedFormat 可在推断上下文用 `is Rss` 匹配，不能误用根 ParseError 的同名 Rss 构造器。本轮源码另重导出了 FeedFormat，可显式使用 `@moonfeed.FeedFormat::Rss`。
+写入调用方自己的 10 个 smoke 测试，覆盖 RSS 仅正文/仅标题/无 guid-link/多条目、根外文本等 XML 非法结构、合法 Misc、Atom Feed/独立 Entry、JSON Feed/附件、类型导出、探测/日期及错误处理，再执行默认 wasm-gc 与 JS 的 check/test/build 和依赖树。`moon.pkg` 的仅测试导入使用 `for "test"`；0.3.0 导出 FeedFormat，可显式使用 `@moonfeed.FeedFormat::Rss`，避免与根 ParseError 的同名 Rss 构造器混淆。
 
-本轮真实首次 clean install 目录为 `D:\DevCache\Temp\moonfeed-registry-review-20261101T152144Z`：新工具链 registry 中此前没有 MoonFeed 包，正常下载精确 0.2.0，四项测试在 wasm-gc/JS 各 4/4，check/build 通过。新项目初始化曾提示 Windows 无权建立 README 符号链接，但初始化返回成功，编译和调用不受影响；没有修改权限或系统安全策略。
+历史 0.2.0 首次 clean install 目录为 `D:\DevCache\Temp\moonfeed-registry-review-20261101T152144Z`，四项测试在 wasm-gc/JS 各 4/4，check/build 通过；这不能替代 0.3.0 的新安装证据。新项目初始化可能提示 Windows 无权建立 README 符号链接；只要初始化返回成功且检查/编译通过，无需修改系统安全策略。
 
 ## 包清单与个人材料
 

@@ -1,5 +1,7 @@
 # RSS 2.0 正式验收专项整改
 
+版本归属：下文记录的是专项修复交付轮，其不发布约束属于当时的操作范围。修复已由 GitHub `1882818` 交付，随后完整功能纳入 0.3.0 发布版本；当前发布 gate、包审计及 registry 复现见 [RELEASE_0.3.0](RELEASE_0.3.0.md) 与 [FINAL_ACCEPTANCE](FINAL_ACCEPTANCE.md)。本报告中的历史 0.2.0 边界不表示 0.3.0 缺少这些修复。
+
 日期：2026-11-23。基线提交：`9f9b4073bbc52f41c26a3ae2ef84fdaceac04c4c`。
 
 本报告记录专项修复、独立审计与可复现本地验证。最终 GitHub 交付须在审计及回归通过后提交、普通推送，并检查与该完整 HEAD 一致的 Actions 结果；本地通过不能代替远端结果。registry 已发布包仍是 0.2.0，本修复属于 Unreleased，本轮不发布 Mooncakes。

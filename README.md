@@ -13,7 +13,7 @@
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
-| Mooncakes 发布 | [`joanna/moonfeed@0.2.0`](https://mooncakes.io/docs/joanna/moonfeed%400.2.0) |
+| Mooncakes 模块版本 | [`joanna/moonfeed@0.3.0`](https://mooncakes.io/docs/joanna/moonfeed%400.3.0) |
 
 ## Requirements
 
@@ -26,15 +26,15 @@
 
 ## 安装与运行
 
-从 Mooncakes 安装当前已发布的 0.2.0：
+从 Mooncakes 安装 MoonFeed 0.3.0：
 
 ```sh
 moon add joanna/moonfeed
 ```
 
-需要复现已发布包时可执行 `moon add joanna/moonfeed@0.2.0`。本轮在仓库外全新项目重新下载该精确版本，三种格式、独立 Entry、探测、日期及错误 API 的四个 smoke 测试在默认和 JS 目标均通过。该版本包含 Atom Feed/Entry 文档 API；`0.1.2` 不含这些 API。
+需要锁定版本复现时执行 `moon add joanna/moonfeed@0.3.0`。使用不带版本的安装命令后，应确认使用方 `moon.mod` 声明 `joanna/moonfeed@0.3.0`；验收脚本会检查这一点，再通过 registry 安装的公共 API 验证 RSS、XML 文档边界、Atom Feed/独立 Entry、JSON 附件、探测和日期。默认及 JS 目标都执行 check/test/build。
 
-**工作区与发布包有版本边界**：下文新增的 JSON Feed attachments、RSS scope/语言修复、公共模型类型重导出和 CLI 改进属于 `Unreleased`，尚未发布到 `0.2.0`。评审这些改进请使用本轮源码。下一次发布建议采用 0.3.0（功能增量），本轮不发布；理由见 [终审交付审计](docs/FINAL_DELIVERY_AUDIT.md)。源码及 registry 的独立验收步骤见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
+**0.3.0 的版本边界**：本版本汇集 RSS 可选 guid/link 修复、XML 文档边界校验、JSON Feed attachments、RSS namespace/语言修复、公共模型类型重导出和 CLI 改进。0.2.0 不包含这些增量，不能用它复验本次整改。发布内容、兼容性与复现命令见 [0.3.0 发布说明](docs/RELEASE_0.3.0.md)；源码及 registry 的独立验收步骤见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
 
 也可以从 GitHub 源码运行和开发：
 
@@ -164,7 +164,7 @@ test {
 
 RSS 错误包括 `InvalidXml`、`UnsupportedRssVersion`、`MissingChannel`、channel 必填字段错误、`InvalidEnclosure` 和带字段路径的 `InvalidRequiredField`。
 
-例如 `<item><description>这是一条新闻正文</description></item>` 或仅有 `<title>` 的条目都能解析。共享 XML Reader 要求完整文档只有一个根元素，根外只允许 XML 空白、合法注释和处理指令；普通文本、CDATA、字符引用或第二个根元素会返回 XML 错误。`detect_format` 仍然只检查前缀，不能代替完整解析。专项测试与版本边界见 [正式验收整改报告](docs/RSS20_FORMAL_ACCEPTANCE_FIX.md)；本修复为 Unreleased，尚未包含在 registry 的 0.2.0。
+例如 `<item><description>这是一条新闻正文</description></item>` 或仅有 `<title>` 的条目都能解析。共享 XML Reader 要求完整文档只有一个根元素，根外只允许 XML 空白、合法注释和处理指令；普通文本、CDATA、字符引用或第二个根元素会返回 XML 错误。`detect_format` 仍然只检查前缀，不能代替完整解析。专项测试见 [正式验收整改报告](docs/RSS20_FORMAL_ACCEPTANCE_FIX.md)；这些修复纳入 0.3.0，旧 0.2.0 不包含。
 
 ## RSS Podcast extensions
 
@@ -282,7 +282,7 @@ moon tree
 
 ## Roadmap
 
-- 已完成：统一模型、JSON Feed 1.1、RSS 2.0、Atom 1.0、RSS Podcast 核心扩展、测试、文档、CI 和 Mooncakes joanna/moonfeed@0.2.0 发布。
+- 0.3.0 包含：统一模型、JSON Feed 1.1 与附件、RSS 2.0 正式验收整改、Atom Feed/Entry、RSS Podcast 核心扩展、日期、CLI、六个示例及 180 项跨目标测试。
 - 当前优先：以申报承诺和实际用户输入驱动修复，维护回归/示例/安装证据；剩余 XML、MIME、email 规范边界见矩阵。DTD validity 验证不是当前 Feed 消费器的必需功能，不为矩阵全绿扩展成通用 XML 工具链；闰秒表继续人工维护。
 
 当前支持 JSON Feed 1.1、RSS 2.0 与 Atom 1.0。设计取舍见 [ARCHITECTURE](docs/ARCHITECTURE.md)。

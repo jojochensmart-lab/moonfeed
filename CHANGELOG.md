@@ -2,18 +2,22 @@
 
 ## Unreleased
 
+## 0.3.0 — 2026-11-23
+
+This release includes the RSS/XML formal-acceptance fixes and the functional improvements previously developed on main. The public model layouts and parser signatures remain unchanged. Local and minimum-version checks cover 180 tests on each target; full RFC 4287 conformance is not claimed (24 PASS / 3 PARTIAL / 0 FAIL).
+
 - Formal RSS acceptance fix (2026-11-23): accept title-only, description-only and mixed items without optional guid/link. Preserve source guid/link priority; represent absent unified IDs as an empty String and missing URLs as None without fabricating identity. Keep the title-or-description requirement in both parsing and direct normalization.
 - Enforce the one-root XML document boundary in the shared Reader/NamespaceReader: reject root-external text, references, CDATA, additional roots and missing roots; consume and validate trailing comments/processing instructions while accepting XML whitespace and legal Misc. Existing RSS/Atom entry-point guards remain as a backstop.
-- Add 20 independent regression tests (180 total on default/JS), update two obsolete RSS expectations to standard-conforming assertions, and extend real-process CLI smoke for the formal feedback. See `docs/RSS20_FORMAL_ACCEPTANCE_FIX.md`. GitHub delivery follows independent audit and final regression; these fixes remain Unreleased and no Mooncakes publication is performed.
+- Add 20 independent regression tests (180 total on default/JS), update two obsolete RSS expectations to standard-conforming assertions, and extend real-process CLI smoke for the formal feedback. See `docs/RSS20_FORMAL_ACCEPTANCE_FIX.md`. These fixes, previously delivered to GitHub separately, are included in 0.3.0.
 
 - Final delivery audit (2026-11-02): synchronize technical application supplements without overwriting originals; document three remaining Atom limits, propose 0.3.0 for the functional additions, and exclude the legacy tracked application filename from package archives.
 
 - Complete JSON Feed attachment mapping and validation, align explicit JSON BOM handling, and expose common model/format types from the root package without changing existing model layouts.
 - Correct RSS default/itunes namespace scope, reject out-of-document data, inherit channel language, preserve XML error reasons, isolate Atom inherited author arrays and guard date-number overflow.
-- Align CLI version with module 0.2.0 and preserve item language in normalized JSON; add four runnable examples and reproducible source/registry acceptance scripts.
+- Align the CLI version with module 0.3.0 and preserve item language in normalized JSON; add four runnable examples and reproducible source/registry acceptance scripts. The new registry consumer checks latest resolution against exact 0.3.0 and covers the formal acceptance feedback.
 - Retain 147 existing tests and add 13 focused cases (160 total). Correct seven Podcast XML fixture suffixes; strengthen attachment and version assertions.
 - Admit RFC 2822 DEL in permitted email contexts and correct the audit's unsupported obsolete quoted-CR/LF boundary: 24 PASS / 3 PARTIAL / 0 FAIL. Full RFC 4287 conformance is not claimed.
-- Protect the renamed private application document in the package manifest and add a proposal-to-code evidence table. These source changes are not published in 0.2.0.
+- Protect the renamed private application document in the package manifest and add a proposal-to-code evidence table. These source changes were absent from 0.2.0 and are included in 0.3.0.
 
 - Add bounded internal DTD support for text-only general entities, `ATTLIST` default attributes, and CDATA/tokenized attribute normalization; reject recursive, external, markup, and over-budget entity expansions with XML errors.
 - Apply RFC 2046 case-insensitive parameter-value comparison for `message/external-body` access-type, permission, and mode; retain RFC 2045 case-sensitive defaults for other values.

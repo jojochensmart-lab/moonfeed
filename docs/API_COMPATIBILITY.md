@@ -1,12 +1,12 @@
 # Atom API 兼容与版本策略
 
-## 2026-11-23 RSS/XML 正式验收整改（Unreleased）
+## 0.3.0 RSS/XML 正式验收整改与版本边界
 
 公开函数签名、错误 variant、模型字段及类型均未变化。`FeedItem.id` 保持 `String`，RSS 的来源 guid 优先、非空 link 回退策略保持不变；两者缺失时由错误改为 `id = ""` 表示没有来源标识，缺少 link 的 `url` 仍是 `None`，raw `Item.guid/link` 仍是 `None`。空字符串不是生成 ID，也不保证唯一；应用去重前应检查非空，身份策略由应用决定，不得把 channel link 当条目链接。JSON Feed/Atom 的 ID 要求不变。
 
 RSS parse_raw 与公开 normalize 都检查 title/description 至少存在一个；只有 guid 或只有 link 的 item 仍不合法。共享 Reader/NamespaceReader 新增文档级结构校验，完整读取到 Eof 时拒绝根外文本/引用/CDATA、多个根或无根文档，合法空白、注释和 PI 保留。曾把事件 Reader 当作片段 tokenizer 的调用方应提供完整 XML 文档；轻量 detect_format 不是全文校验。
 
-原 160 项保留，20 项新测试合计默认/JS 各 180/180。两处与 RSS 规范冲突的旧预期已更正并加强具体字段/错误路径断言。RFC 4287 仍为 24 PASS / 3 PARTIAL / 0 FAIL。详见 [专项整改报告](RSS20_FORMAL_ACCEPTANCE_FIX.md)；最终交付先独立审计及回归，再提交并普通推送验证对应 HEAD 的 CI。本轮不发布 Mooncakes，0.2.0 不包含这些修复。
+原 160 项保留，20 项新测试合计默认/JS 各 180/180。两处与 RSS 规范冲突的旧预期已更正并加强具体字段/错误路径断言。RFC 4287 仍为 24 PASS / 3 PARTIAL / 0 FAIL。详见 [专项整改报告](RSS20_FORMAL_ACCEPTANCE_FIX.md)；这些修复及此前的功能增量纳入 0.3.0，0.2.0 不包含。发布 gate 与新项目安装复现见 [0.3.0 发布说明](RELEASE_0.3.0.md)。
 
 | 入口 | 返回与文档种类 | 校验与信息保留 |
 | --- | --- | --- |
@@ -25,16 +25,16 @@ RSS parse_raw 与公开 normalize 都检查 title/description 至少存在一个
 
 可运行迁移例为 `moon run examples/atom`。日期精确身份使用 AtomDate.raw、fractional_digits、leap_second；Unix 秒只表示 POSIX 时间。
 
-## 发布版本评估
+## 0.2.0 历史发布记录
 
-Mooncakes 最新发布版本为 `0.2.0`。新 API 增加独立 Feed/Entry 结果类型并保留原有 `parse` / `parse_atom` 签名和返回类型；共享 namespace reader 对非法 URI-reference 输入的拒绝属于解析错误收紧。根包接口没有 breaking change。精确版本已在新项目通过 `moon add joanna/moonfeed` 从 registry 安装，生成 `joanna/moonfeed@0.2.0` 依赖声明，并完成 check/build 与 JSON、RSS、Atom Feed、Entry smoke。0.2.0 archive 内的 README 是发布前快照，仍提及 0.1.2/候选状态；GitHub README 已在 clean install 后更正，registry metadata、manifest 和实际 API 一致。此处只影响发布说明文字，不影响包内容和调用。未来若改变旧 parser 的宽松行为，须单独评估兼容性和迁移策略。
-## 2026-11-01 Unreleased compatibility review
+0.2.0 发布时，新 API 增加独立 Feed/Entry 结果类型并保留原有 `parse` / `parse_atom` 签名和返回类型；共享 namespace reader 对非法 URI-reference 输入的拒绝属于解析错误收紧。该精确版本曾在新项目通过 registry 安装，并完成 check/build 与 JSON、RSS、Atom Feed、Entry smoke。0.2.0 archive 内的 README 是发布前快照，仍提及 0.1.2/候选状态；其 manifest 与实际 API 一致。这是历史证据，不代表 0.3.0 的实际安装结果。
+## 2026-11-01 开发审计（后纳入 0.3.0）
 
 Original normalization/document function signatures, public model layouts and error variants are unchanged. The root now additionally re-exports Feed, FeedItem, Author, Attachment, FeedLink, Podcast types and FeedFormat, so clients may annotate results without internal imports. Use `@moonfeed.FeedFormat::Rss` to avoid the same-named ParseError wrapper constructor. These aliases are source additions, not features retroactively present in the released 0.2.0 package.
 
 Supported behavior changes: JSON attachments now map into the existing model instead of being discarded; malformed attachment fields are rejected atomically. The explicit JSON parser accepts a leading BOM, consistent with parse. RSS ignores foreign-default-namespace core collisions, recognizes an empty default namespace and itunes bindings by element scope, and rejects text/CDATA outside the root. Historical undeclared itunes extensions remain ignored. RSS channel language is inherited by its items. Inherited legacy Atom author arrays are copied to avoid cross-item mutations. Oversized date numbers cannot overflow into valid values. XML errors retain the underlying reason without changing error types.
 
-CLI item JSON now has an additive `language` key and `--version` agrees with module 0.2.0. Clients comparing an exact JSON key set should account for that addition. Email DEL is accepted in permitted RFC 2822 contexts; obsolete quoted CR/LF remains unsupported, so matrix A13 is PARTIAL. Test count 160, defaults/JS pass; these changes remain Unreleased; final Git/CI evidence must match the delivered commit. See FINAL_DELIVERY_AUDIT.md for the 0.3.0 recommendation.
+CLI item JSON has an additive `language` key; the release aligns `--version` with module 0.3.0. Clients comparing an exact JSON key set should account for that addition. Email DEL is accepted in permitted RFC 2822 contexts; obsolete quoted CR/LF remains unsupported, so matrix A13 is PARTIAL. This was the historical 160-test review, later extended to 180. These changes are included in 0.3.0; final Git/CI and registry evidence must match the delivered release.
 ### Formatter/minimum-version evidence
 
 The v0.10.18 formatter automatically migrates source Int to Int32, which v0.10.14 cannot parse. The minimum-version check caught this before delivery. Source keeps Int, formatting uses the existing v0.10.14 formatter, and tests pass 160/160 on both targets with both v0.10.14 and v0.10.18. Main development validation remains v0.10.18; no package configuration downgrade, compatibility shim or minimum-version increase was introduced. Generated interface alias display changes do not change runtime layouts.

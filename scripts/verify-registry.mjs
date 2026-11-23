@@ -1,4 +1,4 @@
-// Verify the exact public release in a new consumer, without local path dependencies.
+// Verify registry latest resolves to the release version in a new consumer.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -17,8 +17,11 @@ function run(args, cwd) {
   assert.equal(result.status, 0, `moon ${args.join(' ')} failed`);
 }
 run(['new', project, '--user', 'acceptance', '--name', 'moonfeed-install-review'], path.dirname(project));
-run(['add', 'joanna/moonfeed@0.2.0'], project);
-assert.match(readFileSync(path.join(project, 'moon.mod'), 'utf8'), /joanna\/moonfeed@0\.2\.0/);
+run(['add', 'joanna/moonfeed'], project);
+const manifest = readFileSync(path.join(project, 'moon.mod'), 'utf8');
+assert.match(manifest, /joanna\/moonfeed@0\.3\.0/);
+assert.doesNotMatch(manifest, /(?:path\s*=|git\s*=|moonfeed@0\.2\.)/);
+assert.ok(!existsSync(path.join(project, 'moon.work')), 'Consumer must not use a workspace');
 writeFileSync(path.join(project, 'moon.pkg'), 'import { "joanna/moonfeed" } for "test"\n');
 const smoke = readFileSync(new URL("./registry-smoke.mbt.txt", import.meta.url), "utf8");
 writeFileSync(path.join(project, 'smoke_test.mbt'), smoke);
@@ -26,4 +29,4 @@ for (const target of ['wasm-gc', 'js']) {
   for (const command of ['check', 'test', 'build']) run([command, '--target', target], project);
 }
 run(['tree'], project);
-console.log(`Registry acceptance PASS: joanna/moonfeed@0.2.0, project=${project}`);
+console.log(`Registry acceptance PASS: joanna/moonfeed@0.3.0 (moon add latest), project=${project}`);
