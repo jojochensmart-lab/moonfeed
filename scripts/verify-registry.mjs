@@ -19,14 +19,14 @@ function run(args, cwd) {
 run(['new', project, '--user', 'acceptance', '--name', 'moonfeed-install-review'], path.dirname(project));
 run(['add', 'joanna/moonfeed'], project);
 const manifest = readFileSync(path.join(project, 'moon.mod'), 'utf8');
-assert.match(manifest, /joanna\/moonfeed@0\.3\.0/);
+assert.match(manifest, /joanna\/moonfeed@0\.3\.1/);
 assert.doesNotMatch(manifest, /(?:path\s*=|git\s*=|moonfeed@0\.2\.)/);
 assert.ok(!existsSync(path.join(project, 'moon.work')), 'Consumer must not use a workspace');
-writeFileSync(path.join(project, 'moon.pkg'), 'import { "joanna/moonfeed" } for "test"\n');
+writeFileSync(path.join(project, 'moon.pkg'), 'import { "joanna/moonfeed", "joanna/moonfeed/src/atom", "joanna/moonfeed/src/rss", "moonbitlang/core/test" } for "test"\n');
 const smoke = readFileSync(new URL("./registry-smoke.mbt.txt", import.meta.url), "utf8");
 writeFileSync(path.join(project, 'smoke_test.mbt'), smoke);
-for (const target of ['wasm-gc', 'js']) {
-  for (const command of ['check', 'test', 'build']) run([command, '--target', target], project);
+for (const target of ['default', 'wasm-gc', 'js']) {
+  for (const command of ['check', 'test', 'build']) run(target === 'default' ? [command] : [command, '--target', target], project);
 }
 run(['tree'], project);
-console.log(`Registry acceptance PASS: joanna/moonfeed@0.3.0 (moon add latest), project=${project}`);
+console.log(`Registry acceptance PASS: joanna/moonfeed@0.3.1 (moon add latest), project=${project}`);

@@ -2,14 +2,20 @@
 
 ## Unreleased
 
+No additional unreleased changes.
+
+## 0.3.1 — 2026-11-24
+
+Patch release for XML entity safety, declaration/MIME correctness and toolchain compatibility. Public signatures, model layouts and traits remain compatible; validation/resource-limit behavior tightens. Default and JS each pass 222 tests on v0.10.14, v0.10.18 and v0.10.22, with no compiler warnings. RFC 4287 remains 25 PASS / 2 PARTIAL / 0 FAIL, not complete conformance. See [release notes](docs/RELEASE_0.3.1.md).
+
 - Final review: restrict charset value case-folding to the six verified registrations, retaining unknown/private values instead of conflating their links. Add four public/whitebox regression cases for charset distinctions and cumulative forward empty-entity budgets through Reader and NamespaceReader (222 tests). See docs/MAINTENANCE_0.3.1_FINAL_REVIEW.md.
 
 - Security follow-up: replace recursive entity expansion with explicit frames and shared depth/reference/work/UTF-8-output limits; bound input and element depth, preserve the per-value character ceiling, and retain sticky typed errors. Empty replacements cannot bypass the work/reference budget.
 - Reject parameter-entity NDATA declarations, applicable undeclared/cyclic entity dependencies, and attribute defaults referring to entities before declaration; preserve legal general-entity forward references and prohibit external resource loading.
 - Compare multipart/related embedded type/subtype case-insensitively while retaining case-sensitive boundary and opaque values. Validate required type/boundary, nested type syntax, boundary grammar and duplicate known related parameters; retain unknown parameter occurrences and original attributes.
-- Add 22 focused tests (218 total, original 196 unchanged) and real-process CLI declaration/amplification checks. v0.10.14/v0.10.18/v0.10.22 pass both targets, examples and CLI without warnings. Matrix remains 25 PASS / 2 PARTIAL / 0 FAIL; see docs/SECURITY_0.3.1_FIX.md. No release or version change is made.
+- Add 22 focused tests (218 before the final four review tests, original 196 unchanged) and real-process CLI declaration/amplification checks. v0.10.14/v0.10.18/v0.10.22 pass both targets, examples and CLI without warnings. Matrix remains 25 PASS / 2 PARTIAL / 0 FAIL; see docs/SECURITY_0.3.1_FIX.md.
 
-- 0.3.1 maintenance worktree: add context-specific RFC 2822 quoted CR/LF support for Atom authors/contributors, preserving the source string and strict MIME header rules; matrix A13 is now PASS, with A05/A20 still PARTIAL (25/2/0).
+- Add context-specific RFC 2822 quoted CR/LF support for Atom authors/contributors, preserving the source string and strict MIME header rules; matrix A13 is now PASS, with A05/A20 still PARTIAL (25/2/0).
 - Add verified RFC 5023 Atom type and RFC 3676 text/plain format/delsp parameter-value comparison rules; preserve case-sensitive boundary/unknown values and repeated-parameter multiplicity.
 - Tighten XML BOM, DOCTYPE characters/references, PUBLIC/ATTLIST/ELEMENT/NOTATION syntax, entity-value reference timing and attribute normalization; reject malformed UTF-8 bytes in CLI files/stdin without silently substituting characters.
 - Replace 13 deprecated derive declarations with equivalent explicit Eq/Debug implementations and two integer conversions with to_int64, retaining v0.10.14 support and public interfaces. No warnings are suppressed.

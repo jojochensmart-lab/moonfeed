@@ -1,10 +1,10 @@
 # MoonFeed
 
-> `maintenance/0.3.1` 为尚未发布的维护分支；正式安装版本仍为下方的 0.3.0。当前源码新增 quoted email CR/LF、注册 MIME 参数规则、XML/UTF-8 校验及跨工具链零弃用警告实现。源码矩阵为 25 PASS / 2 PARTIAL，不宣称完整 RFC 4287；[审计与剩余工作](docs/RFC4287_REMAINING_GAPS_AUDIT.md)。
+> 0.3.1 为安全与规范修复版本：XML 实体累计预算、声明校验、MIME 参数比较和跨工具链弃用警告修复；公开 API 兼容，最低 MoonBit v0.10.14。RFC 矩阵仍为 25 PASS / 2 PARTIAL，不宣称完整 RFC 4287；见 [0.3.1 发布说明](docs/RELEASE_0.3.1.md)。
 
 面向 MoonBit 生态的多格式 Feed 解析与规范化基础库，把 RSS、Atom 和 JSON Feed 转换为统一的 `Feed` / `FeedItem` 模型。
 
-维护分支的 XML 解析采用累计资源预算：实体深度 32、引用 65,536 次、工作量 16,777,216 单位、UTF-8 输出 8 MiB；输入最多 16 MiB、元素深度最多 256，另保留单值 1,048,576 字符限制。超限返回现有 XML typed error。内部小实体仍支持，外部资源始终不读取；完整实体与所有 MIME 注册语义仍有边界。具体计费、声明修复及 `multipart/related` 规则见 [0.3.1 安全整改](docs/SECURITY_0.3.1_FIX.md)。以上尚未发布，不属于 registry 0.3.0。
+0.3.1 的 XML 解析采用累计资源预算：实体深度 32、引用 65,536 次、工作量 16,777,216 单位、UTF-8 输出 8 MiB；输入最多 16 MiB、元素深度最多 256，另保留单值 1,048,576 字符限制。超限返回现有 XML typed error。内部小实体仍支持，外部资源始终不读取；完整实体与所有 MIME 注册语义仍有边界。具体计费、声明修复及 `multipart/related` 规则见 [0.3.1 安全整改](docs/SECURITY_0.3.1_FIX.md)。这些修复属于 0.3.1，旧 registry 0.3.0 不包含。
 
 ## 支持状态
 
@@ -17,7 +17,7 @@
 | Auto detection | supported |
 | Date normalization | supported；保留原始字符串并提供 UTC Unix 秒 |
 | CLI | supported |
-| Mooncakes 模块版本 | [`joanna/moonfeed@0.3.0`](https://mooncakes.io/docs/joanna/moonfeed%400.3.0) |
+| Mooncakes 模块版本 | [`joanna/moonfeed@0.3.1`](https://mooncakes.io/docs/joanna/moonfeed%400.3.1) |
 
 ## Requirements
 
@@ -30,15 +30,15 @@
 
 ## 安装与运行
 
-从 Mooncakes 安装 MoonFeed 0.3.0：
+从 Mooncakes 安装 MoonFeed 0.3.1：
 
 ```sh
 moon add joanna/moonfeed
 ```
 
-需要锁定版本复现时执行 `moon add joanna/moonfeed@0.3.0`。使用不带版本的安装命令后，应确认使用方 `moon.mod` 声明 `joanna/moonfeed@0.3.0`；验收脚本会检查这一点，再通过 registry 安装的公共 API 验证 RSS、XML 文档边界、Atom Feed/独立 Entry、JSON 附件、探测和日期。默认及 JS 目标都执行 check/test/build。
+需要锁定版本复现时执行 `moon add joanna/moonfeed@0.3.1`。使用不带版本的安装命令后，应确认使用方 `moon.mod` 声明 `joanna/moonfeed@0.3.1`；验收脚本会检查这一点，再通过 registry 安装的公共 API 验证 RSS、XML 文档边界、Atom Feed/独立 Entry、JSON 附件、探测和日期。默认及 JS 目标都执行 check/test/build。
 
-**0.3.0 的版本边界**：本版本汇集 RSS 可选 guid/link 修复、XML 文档边界校验、JSON Feed attachments、RSS namespace/语言修复、公共模型类型重导出和 CLI 改进。0.2.0 不包含这些增量，不能用它复验本次整改。发布内容、兼容性与复现命令见 [0.3.0 发布说明](docs/RELEASE_0.3.0.md)；源码及 registry 的独立验收步骤见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
+**0.3.1 的版本边界**：0.3.0 的全部功能保留，另增加本轮实体安全、声明/MIME 和编译兼容修复。详见 [0.3.1 发布说明](docs/RELEASE_0.3.1.md)。以下为 0.3.0 功能基线：本版本汇集 RSS 可选 guid/link 修复、XML 文档边界校验、JSON Feed attachments、RSS namespace/语言修复、公共模型类型重导出和 CLI 改进。0.2.0 不包含这些增量，不能用它复验本次整改。发布内容、兼容性与复现命令见 [0.3.0 发布说明](docs/RELEASE_0.3.0.md)；源码及 registry 的独立验收步骤见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
 
 也可以从 GitHub 源码运行和开发：
 
@@ -76,9 +76,9 @@ Items: 2
 ```
 ## 当前限制
 
-下段说明已发布 0.3.0 的范围。维护分支已补上 email quoted CR/LF，但内部标记实体/参数实体和任意注册 MIME 参数语义仍有边界；维护源码与已发布包不能互相替代验证。
+0.3.1 已补上 email quoted CR/LF；内部标记实体、参数实体和任意注册 MIME 参数语义仍有边界。应使用同一版本的源码、CI 与 registry 安装证据进行复验。
 
-MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Atom 内部 XML reader 支持内部 DTD 的文本实体和默认属性，但不支持参数实体、外部 DTD/实体或实体替换标记；alternate 链接的部分媒体类型注册参数比较，以及历史 email quoted-pair 的 CR/LF 形式也未覆盖。因此项目仍不宣称完整 RFC 4287 兼容。详见 [XML parsing scope](docs/XML_PARSING_SCOPE.md)、[leap-second procedure](docs/LEAP_SECONDS.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
+MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Atom 内部 XML reader 支持内部 DTD 的文本实体和默认属性，但不支持参数实体、外部 DTD/实体或实体替换标记；alternate 链接的部分媒体类型注册参数比较仍未覆盖所有注册类型的特殊语义。因此项目仍不宣称完整 RFC 4287 兼容。详见 [XML parsing scope](docs/XML_PARSING_SCOPE.md)、[leap-second procedure](docs/LEAP_SECONDS.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
 ## API 示例
 
@@ -280,9 +280,9 @@ moon tree
 
 格式化使用 v0.10.14 工具链的 `moon fmt` / `moon fmt --check`，避免新版格式器把源码 `Int` 迁移为最低版本不支持的 `Int32`。维护源码在 v0.10.14、v0.10.18、v0.10.22 均通过 222 项双目标测试、check/build、六示例与 CLI，均为零编译警告。13 处旧 derive 改为兼容三版的显式 Eq/Debug，实现和公开能力不变；两个整数转换保持同值。`moon.pkg` 和最低版本未降级或提高。
 
-维护源码共有 222 个行为测试：正式 0.3.0 的 180 项保留，先新增 16 项规范/兼容测试，再增加 22 项实体安全、声明和 MIME 回归测试，以及 4 项最终审查回归；旧 email 已知缺口用例改为具体成功值断言，原 MIME 负向断言保留。执行 `node scripts/verify.mjs` 可复现双目标 check/test/build、六示例和 CLI 正反验收，含新增非法 UTF-8 字节检查。使用 v0.10.14 / v0.10.18 / v0.10.22 分别验证，不能用正式 0.3.0 的 CI 冒充维护工作区结果；registry 安装脚本仍只验证已发布 0.3.0。
+0.3.1 共有 222 个行为测试：正式 0.3.0 的 180 项保留，先新增 16 项规范/兼容测试，再增加 22 项实体安全、声明和 MIME 回归测试，以及 4 项最终审查回归；旧 email 已知缺口用例改为具体成功值断言，原 MIME 负向断言保留。执行 `node scripts/verify.mjs` 可复现双目标 check/test/build、六示例和 CLI 正反验收，含新增非法 UTF-8 字节检查。使用 v0.10.14 / v0.10.18 / v0.10.22 分别验证，不能用正式 0.3.0 的 CI 冒充 0.3.1 结果；registry 安装脚本要求解析到精确 0.3.1，并验证实体预算、MIME 和现有格式。
 
-黑客松整改见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，申报承诺与实现证据见 [功能实现对照表](docs/申报书功能实现对照表.md)。正式 0.3.0 矩阵为 24/3/0；维护源码为 25 PASS / 2 PARTIAL / 0 FAIL，A13 email 缺口已关闭，A05 XML 与 A20 通用注册 MIME 语义仍未完整。
+黑客松整改见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，申报承诺与实现证据见 [功能实现对照表](https://github.com/jojochensmart-lab/moonfeed/blob/main/docs/申报书功能实现对照表.md)。正式 0.3.0 矩阵为 24/3/0；维护源码为 25 PASS / 2 PARTIAL / 0 FAIL，A13 email 缺口已关闭，A05 XML 与 A20 通用注册 MIME 语义仍未完整。
 
 贡献流程、测试命令和开源合规说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 

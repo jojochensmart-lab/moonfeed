@@ -138,3 +138,55 @@ test "registry 0.3 RSS still rejects items without title and description" {
     assert_true(rejected)
   }
 }
+
+///|
+fn registry_entry(extra : String) -> String {
+  "<entry xmlns='http://www.w3.org/2005/Atom'><id>urn:installed</id><title>Installed</title><updated>2026-10-01T12:00:00Z</updated><author><name>A</name></author>" + extra + "<content>Body</content></entry>"
+}
+
+///|
+test "registry 0.3.1 entity budget rejects empty amplification with a typed error" {
+  let mut subset = "<!ENTITY e0 ''>"
+  for i = 1; i <= 20; i = i + 1 {
+    let reference = "&e" + (i - 1).to_string() + ";"
+    subset += "<!ENTITY e" + i.to_string() + " '" + reference + reference + "'>"
+  }
+  let xml = "<!DOCTYPE rss [" + subset + "]>" + installed_rss("<item><description>&e20;</description></item>")
+  assert_true(@test.expect_error(() => @moonfeed.parse(xml)) is @moonfeed.Rss(@rss.InvalidXml("XML entity reference limit exceeded")))
+}
+
+///|
+test "registry 0.3.1 declaration errors reject NDATA and forward defaults" {
+  for (subset, message) in [
+    ("<!ENTITY % p SYSTEM 'urn:p' NDATA n>", "NDATA is forbidden for parameter entities"),
+    ("<!ATTLIST rss a CDATA '&later;'><!ENTITY later 'v'>", "undeclared general entity"),
+  ] {
+    match @test.expect_error(() => @moonfeed.parse_rss("<!DOCTYPE rss [" + subset + "]>" + installed_rss("<item><description>Body</description></item>"))) {
+      @rss.InvalidXml(actual) => assert_eq(actual, message)
+      _ => fail("expected typed XML declaration error")
+    }
+  }
+  let valid = "<!DOCTYPE rss [<!ENTITY a '&b;'><!ENTITY b 'Safe'>]>" + installed_rss("<item><description>&a;</description></item>")
+  assert_eq(@moonfeed.parse(valid).items[0].content_html, Some("Safe"))
+}
+
+///|
+test "registry 0.3.1 related MIME inner type comparison is registration specific" {
+  let duplicate = registry_entry("<link href='a' type='multipart/related;boundary=AbC;type=&quot;Text/HTML&quot;'/><link href='b' type='Multipart/Related;TYPE=&quot;text/html&quot;;BOUNDARY=AbC'/>")
+  assert_true(@test.expect_error(() => @moonfeed.parse_atom_document(duplicate)) is @atom.InvalidRequiredField("entry.link[1]", _))
+  match @moonfeed.parse_atom_document(registry_entry("<link href='a' type='multipart/related;boundary=AbC;type=&quot;text/html&quot;'/><link href='b' type='multipart/related;boundary=abc;type=&quot;text/html&quot;'/>") ) {
+    @moonfeed.AtomDocument::EntryDocument(entry) => assert_eq(entry.metadata.links.length(), 2)
+    _ => fail("expected Entry Document")
+  }
+}
+
+///|
+test "registry 0.3.1 private charset values retain case distinctions" {
+  match @moonfeed.parse_atom_document(registry_entry("<link href='a' type='application/x-private;charset=AbC'/><link href='b' type='application/x-private;CHARSET=abc'/>") ) {
+    @moonfeed.AtomDocument::EntryDocument(entry) => {
+      assert_eq(entry.metadata.links.length(), 2)
+      assert_eq(entry.metadata.links[0].media_type, Some("application/x-private;charset=AbC"))
+    }
+    _ => fail("expected Entry Document")
+  }
+}

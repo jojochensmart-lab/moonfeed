@@ -1,6 +1,6 @@
 # Atom API 兼容与版本策略
 
-## maintenance/0.3.1（尚未发布）
+## 0.3.1 安全与规范修复
 
 最终审查进一步限制 charset 的大小写规则：仅对已核验的六类媒体类型折叠值，未知/私有类型同名参数保持原大小写。这避免过度合并 alternate 链接；原始属性不变，没有公开 API 变化。见 [最终审查](MAINTENANCE_0.3.1_FINAL_REVIEW.md)。
 
@@ -8,7 +8,7 @@
 
 email 新接收规范允许的 quoted CR/LF，原始字符串保留；MIME 不随之接受裸换行。已知注册参数的大小写等价会使以前漏检的 alternate 组合报重复。XML/CLI 对非法 DTD 词法和非法 UTF-8 字节更严格；合法 BOM 由 XML Reader 只消费一次，重复 BOM 不会被多层剥离而误接受；Unicode、字符引用和属性值按 XML 规范处理。String API 不增加字节编码转换或外部实体读取。
 
-维护源码矩阵为 25 PASS / 2 PARTIAL / 0 FAIL，222 项测试；正式 0.3.0 的历史 24/3/0 与 180 项记录不变。源码验证与 registry 安装证据分开，见 [剩余缺口审计](RFC4287_REMAINING_GAPS_AUDIT.md)。
+0.3.1 矩阵为 25 PASS / 2 PARTIAL / 0 FAIL，222 项测试；正式 0.3.0 的历史 24/3/0 与 180 项记录不变。源码验证与 registry 安装证据分开，见 [剩余缺口审计](RFC4287_REMAINING_GAPS_AUDIT.md)。
 
 2026-11-24 安全整改不增加公开参数、错误 variant 或模型字段；共享 Reader 的预算状态均为私有字段。XML 输入、展开和输出现在有累计资源限制，达到上限返回现有 Malformed/InvalidXml 包装，可能拒绝此前接受的超大输入。非法参数实体 NDATA、默认值实体声明顺序和 multipart/related 参数错误被明确拒绝；重复 alternate 中的内嵌媒体类型大小写现在按规范等价。原始 link 属性仍保留。这是校验与安全行为收紧，不是公开签名变更；限制数值见 [安全整改](SECURITY_0.3.1_FIX.md)。
 
