@@ -17,19 +17,23 @@ pub(all) struct Attachment {
   title : String?
   size_in_bytes : UInt64?
   duration_in_seconds : Double?
-} derive(Eq, @debug.Debug)
+}
 pub fn Attachment::equal(Self, Self) -> Bool
 pub fn Attachment::not_equal(Self, Self) -> Bool
 pub fn Attachment::to_repr(Self) -> @debug.Repr
+pub impl Eq for Attachment
+pub impl @debug.Debug for Attachment
 
 pub(all) struct Author {
   name : String?
   url : String?
   avatar : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn Author::equal(Self, Self) -> Bool
 pub fn Author::not_equal(Self, Self) -> Bool
 pub fn Author::to_repr(Self) -> @debug.Repr
+pub impl Eq for Author
+pub impl @debug.Debug for Author
 
 pub(all) struct Feed {
   title : String
@@ -42,10 +46,12 @@ pub(all) struct Feed {
   updated : String?
   updated_at : @datetime.DateTime?
   items : Array[FeedItem]
-} derive(Eq, @debug.Debug)
+}
 pub fn Feed::equal(Self, Self) -> Bool
 pub fn Feed::not_equal(Self, Self) -> Bool
 pub fn Feed::to_repr(Self) -> @debug.Repr
+pub impl Eq for Feed
+pub impl @debug.Debug for Feed
 
 pub(all) struct FeedItem {
   id : String
@@ -63,19 +69,23 @@ pub(all) struct FeedItem {
   language : String?
   categories : Array[String]
   attachments : Array[Attachment]
-} derive(Eq, @debug.Debug)
+}
 pub fn FeedItem::equal(Self, Self) -> Bool
 pub fn FeedItem::not_equal(Self, Self) -> Bool
 pub fn FeedItem::to_repr(Self) -> @debug.Repr
+pub impl Eq for FeedItem
+pub impl @debug.Debug for FeedItem
 
 pub(all) struct FeedLink {
   url : String
   rel : String?
   media_type : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn FeedLink::equal(Self, Self) -> Bool
 pub fn FeedLink::not_equal(Self, Self) -> Bool
 pub fn FeedLink::to_repr(Self) -> @debug.Repr
+pub impl Eq for FeedLink
+pub impl @debug.Debug for FeedLink
 
 pub(all) struct PodcastCategory {
   name : String

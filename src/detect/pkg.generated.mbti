@@ -13,20 +13,24 @@ pub(all) suberror DetectError {
   EmptyInput
   UnknownFormat
   MalformedPrefix(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn DetectError::equal(Self, Self) -> Bool
 pub fn DetectError::not_equal(Self, Self) -> Bool
 pub fn DetectError::to_repr(Self) -> @debug.Repr
+pub impl Eq for DetectError
+pub impl @debug.Debug for DetectError
 
 // Types and methods
 pub(all) enum FeedFormat {
   JsonFeed
   Rss
   Atom
-} derive(Eq, @debug.Debug)
+}
 pub fn FeedFormat::equal(Self, Self) -> Bool
 pub fn FeedFormat::not_equal(Self, Self) -> Bool
 pub fn FeedFormat::to_repr(Self) -> @debug.Repr
+pub impl Eq for FeedFormat
+pub impl @debug.Debug for FeedFormat
 
 // Type aliases
 

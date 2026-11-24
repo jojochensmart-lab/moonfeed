@@ -4,7 +4,7 @@ pub(all) struct Author {
   name : String?
   url : String?
   avatar : String?
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 /// A downloadable resource with optional byte size and duration metadata.
@@ -14,7 +14,7 @@ pub(all) struct Attachment {
   title : String?
   size_in_bytes : UInt64?
   duration_in_seconds : Double?
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 /// A typed link, reserved for RSS and Atom link relationships.
@@ -22,7 +22,7 @@ pub(all) struct FeedLink {
   url : String
   rel : String?
   media_type : String?
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 /// Format-independent item. Original date strings are preserved alongside optional normalized UTC instants.
@@ -44,7 +44,7 @@ pub(all) struct FeedItem {
   language : String?
   categories : Array[String]
   attachments : Array[Attachment]
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 /// Format-independent feed. Collections are ordered and absent collections are empty.
@@ -59,4 +59,4 @@ pub(all) struct Feed {
   updated : String?
   updated_at : @datetime.DateTime?
   items : Array[FeedItem]
-} derive(Eq, @debug.Debug)
+}

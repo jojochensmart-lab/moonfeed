@@ -266,7 +266,8 @@ extern "js" fn host_read(path : String) -> String =
   #| function(path) {
   #|   try {
   #|     const fs = require("fs");
-  #|     return path === "-" ? fs.readFileSync(0, "utf8") : fs.readFileSync(path, "utf8");
+  #|     const bytes = path === "-" ? fs.readFileSync(0) : fs.readFileSync(path);
+  #|     return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
   #|   } catch (error) {
   #|     return "\u0000ERR:" + (error && error.code === "ENOENT" ? "file not found: " : "cannot read input: ") + String(error && error.message || error);
   #|   }

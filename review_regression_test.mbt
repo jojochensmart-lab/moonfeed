@@ -211,16 +211,16 @@ test "review Atom email permits XML-representable RFC2822 DEL in quoted contexts
 }
 
 ///|
-test "review unsupported obsolete email quoted line break is explicitly diagnosed" {
-  // RFC 2822 section 4.1 permits a quoted-pair containing LF. The current
-  // header scanner deliberately does not implement this obsolete production.
-  let error = strict_error(
+test "review obsolete email quoted line break is retained while MIME stays strict" {
+  // RFC 2822 section 4.1 permits this quoted-pair. Keep the independent
+  // MIME rejection assertion below: that grammar remains unchanged.
+  let entry = entry_document(
     strict_entry_xml(
       "<contributor><name>C</name><email>&quot;a\\&#10;b&quot;@example.org</email></contributor><content/>",
     ),
   )
   assert_true(
-    error is @atom.InvalidRequiredField("entry.contributor[0].email", _),
+    entry.metadata.contributors[0].email == Some("\"a\\\nb\"@example.org"),
   )
   assert_true(
     strict_error(

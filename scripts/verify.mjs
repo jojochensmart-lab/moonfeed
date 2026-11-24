@@ -1,7 +1,7 @@
 // Reproduce source acceptance without a shell pipeline or third-party packages.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -86,6 +86,49 @@ for (const input of [
   assert.match(result.stderr, /failed to parse/);
 }
 console.log('Formal RSS/XML CLI PASS: optional identity, XML Misc, malformed boundaries, missing content');
+// Shared declaration checks and bounded entity processing must reach the CLI.
+for (const input of [
+  '<!DOCTYPE rss [<!ENTITY % p SYSTEM "urn:p" NDATA n>]>' + bodyOnly,
+  '<!DOCTYPE rss [<!ATTLIST absent a CDATA "&missing;">]>' + bodyOnly,
+  '<!DOCTYPE rss [<!ATTLIST rss a CDATA "&later;"><!ENTITY later "v">]>' + bodyOnly,
+]) {
+  const result = command(['normalize', '-'], { input, expected: 2 });
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /failed to parse/);
+}
+const smallDtd = '<!DOCTYPE rss [<!ENTITY heading "Safe">]>';
+const safeFeed = JSON.parse(command(['normalize', '-'], { input: smallDtd + rss('<item><description>&heading;</description></item>') }).stdout);
+assert.equal(safeFeed.items[0].content_html, 'Safe');
+let amplification = '<!ENTITY e0 "">';
+for (let i = 1; i <= 20; i++) amplification += `<!ENTITY e${i} "&e${i - 1};&e${i - 1};">`;
+const limited = command(['normalize', '-'], {
+  input: `<!DOCTYPE rss [${amplification}]>` + rss('<item><description>&e20;</description></item>'), expected: 2,
+});
+assert.equal(limited.stdout, '');
+assert.match(limited.stderr, /XML entity reference limit exceeded/);
+console.log('Entity security CLI PASS: invalid declarations rejected, small entities retained, amplification bounded');
+// Strict UTF-8 decoding must precede XML parsing: never silently replace bad bytes.
+const invalidUtf8File = path.join(root, '_build', `invalid-utf8-${process.pid}.xml`);
+const openingBytes = Buffer.from('<rss version="2.0"><channel><title>F</title><link>u</link><description>D</description><item><description>');
+const closingBytes = Buffer.from('</description></item></channel></rss>');
+for (const bytes of [[0xc0, 0xaf], [0xed, 0xa0, 0x80], [0xf4, 0x90, 0x80, 0x80], [0xe2, 0x82]]) {
+  const result = command(['normalize', '-'], { input: Buffer.concat([openingBytes, Buffer.from(bytes), closingBytes]), expected: 2 });
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /cannot read input/);
+}
+let createdUtf8Fixture = false;
+try {
+  writeFileSync(invalidUtf8File, Buffer.concat([openingBytes, Buffer.from([0xff]), closingBytes]), { flag: 'wx' });
+  createdUtf8Fixture = true;
+  const result = command(['normalize', invalidUtf8File], { expected: 2 });
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /cannot read input/);
+} finally {
+  if (createdUtf8Fixture) unlinkSync(invalidUtf8File);
+}
+const replacementCharacter = JSON.parse(command(['normalize', '-'], { input: rss('<item><description>\uFFFD</description></item>') }).stdout);
+assert.equal(replacementCharacter.items[0].content_html, '\uFFFD');
+console.log('UTF-8 CLI PASS: malformed bytes rejected for stdin/files, valid replacement character preserved');
 for (const [args, input, error] of [
   [['normalize', '-'], '', /input is empty/],
   [['normalize', '-'], '{bad}', /failed to parse/],

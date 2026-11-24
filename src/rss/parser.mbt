@@ -40,12 +40,7 @@ fn node(element : @xmlmini.XmlElement, parent : Node?) -> Node {
 
 ///|
 fn document(input : String) -> Node raise ParseError {
-  let normalized = if input.has_prefix("\u{FEFF}") {
-    input[1:].to_owned()
-  } else {
-    input
-  }
-  let reader = @xmlmini.Reader::from_string(normalized)
+  let reader = @xmlmini.Reader::from_string(input)
   let stack : Array[Node] = []
   let roots : Array[Node] = []
   while true {

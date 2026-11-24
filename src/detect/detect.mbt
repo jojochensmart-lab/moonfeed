@@ -3,7 +3,7 @@ pub(all) enum FeedFormat {
   JsonFeed
   Rss
   Atom
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn FeedFormat::equal(self : FeedFormat, other : FeedFormat) -> Bool {
@@ -25,7 +25,7 @@ pub(all) suberror DetectError {
   EmptyInput
   UnknownFormat
   MalformedPrefix(String)
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn DetectError::equal(self : DetectError, other : DetectError) -> Bool {
@@ -80,7 +80,7 @@ pub fn detect_format(input : String) -> FeedFormat raise DetectError {
   if !prefix.has_prefix("<") {
     raise UnknownFormat
   }
-  let reader = @xmlmini.NamespaceReader::from_string(normalized)
+  let reader = @xmlmini.NamespaceReader::from_string(input)
   while true {
     let event = reader.read_event() catch {
       _ => raise MalformedPrefix("malformed XML namespace or root tag")

@@ -20,5 +20,5 @@ pub fn parse_podcast_rss(
 pub fn detect_format(
   input : String,
 ) -> @detect.FeedFormat raise @detect.DetectError {
-  @detect.detect_format(strip_utf8_bom(input))
+  @detect.detect_format(input)
 }

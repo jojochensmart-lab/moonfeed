@@ -9,7 +9,7 @@ pub(all) suberror ParseError {
   MissingChannelDescription
   InvalidEnclosure(String, String)
   InvalidRequiredField(String, String)
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn ParseError::equal(self : ParseError, other : ParseError) -> Bool {

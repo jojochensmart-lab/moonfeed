@@ -23,20 +23,24 @@ pub(all) suberror DateTimeError {
   InvalidTime
   InvalidOffset
   UnsupportedTimezone(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn DateTimeError::equal(Self, Self) -> Bool
 pub fn DateTimeError::not_equal(Self, Self) -> Bool
 pub fn DateTimeError::to_repr(Self) -> @debug.Repr
+pub impl Eq for DateTimeError
+pub impl @debug.Debug for DateTimeError
 
 // Types and methods
 pub(all) struct DateTime {
   raw : String
   unix_seconds : Int64
-} derive(Eq, @debug.Debug)
+}
 pub fn DateTime::compare(Self, Self) -> Int32
 pub fn DateTime::equal(Self, Self) -> Bool
 pub fn DateTime::not_equal(Self, Self) -> Bool
 pub fn DateTime::to_repr(Self) -> @debug.Repr
+pub impl Eq for DateTime
+pub impl @debug.Debug for DateTime
 
 // Type aliases
 

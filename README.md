@@ -1,6 +1,10 @@
 # MoonFeed
 
+> `maintenance/0.3.1` 为尚未发布的维护分支；正式安装版本仍为下方的 0.3.0。当前源码新增 quoted email CR/LF、注册 MIME 参数规则、XML/UTF-8 校验及跨工具链零弃用警告实现。源码矩阵为 25 PASS / 2 PARTIAL，不宣称完整 RFC 4287；[审计与剩余工作](docs/RFC4287_REMAINING_GAPS_AUDIT.md)。
+
 面向 MoonBit 生态的多格式 Feed 解析与规范化基础库，把 RSS、Atom 和 JSON Feed 转换为统一的 `Feed` / `FeedItem` 模型。
+
+维护分支的 XML 解析采用累计资源预算：实体深度 32、引用 65,536 次、工作量 16,777,216 单位、UTF-8 输出 8 MiB；输入最多 16 MiB、元素深度最多 256，另保留单值 1,048,576 字符限制。超限返回现有 XML typed error。内部小实体仍支持，外部资源始终不读取；完整实体与所有 MIME 注册语义仍有边界。具体计费、声明修复及 `multipart/related` 规则见 [0.3.1 安全整改](docs/SECURITY_0.3.1_FIX.md)。以上尚未发布，不属于 registry 0.3.0。
 
 ## 支持状态
 
@@ -71,6 +75,8 @@ Title: Example Feed
 Items: 2
 ```
 ## 当前限制
+
+下段说明已发布 0.3.0 的范围。维护分支已补上 email quoted CR/LF，但内部标记实体/参数实体和任意注册 MIME 参数语义仍有边界；维护源码与已发布包不能互相替代验证。
 
 MoonFeed 只解析传入的 JSON/XML 文本或文件，不抓取远程 URL，也不做 HTML autodiscovery。RSS 的 Apple Podcasts/iTunes 扩展支持常用节目与单集元数据；Media RSS 等其他扩展尚未纳入统一模型。Atom 不支持 AtomPub。Atom 内部 XML reader 支持内部 DTD 的文本实体和默认属性，但不支持参数实体、外部 DTD/实体或实体替换标记；alternate 链接的部分媒体类型注册参数比较，以及历史 email quoted-pair 的 CR/LF 形式也未覆盖。因此项目仍不宣称完整 RFC 4287 兼容。详见 [XML parsing scope](docs/XML_PARSING_SCOPE.md)、[leap-second procedure](docs/LEAP_SECONDS.md) 和 [RFC 4287 兼容矩阵](docs/ATOM_RFC4287_COMPLIANCE.md)。
 
@@ -272,11 +278,11 @@ moon build --target js
 moon tree
 ```
 
-格式化需使用 v0.10.14 工具链的 `moon fmt` / `moon fmt --check`；v0.10.18 格式器会自动将源码 `Int` 改成旧版本不支持的 `Int32`。本轮保留 `Int` 写法并以 v0.10.14 格式器通过检查；主验证使用 v0.10.18，最低 v0.10.14 也单独通过 180 项双目标测试。`moon.pkg` 没有降级或兼容层。
+格式化使用 v0.10.14 工具链的 `moon fmt` / `moon fmt --check`，避免新版格式器把源码 `Int` 迁移为最低版本不支持的 `Int32`。维护源码在 v0.10.14、v0.10.18、v0.10.22 均通过 222 项双目标测试、check/build、六示例与 CLI，均为零编译警告。13 处旧 derive 改为兼容三版的显式 Eq/Debug，实现和公开能力不变；两个整数转换保持同值。`moon.pkg` 和最低版本未降级或提高。
 
-当前共有 180 个行为测试：上一轮 160 项全部保留，本轮新增 20 项 RSS/XML 专项回归。两处旧 RSS 错误预期按规范更正：只含 title 的条目改为逐字段成功断言；必需字段错误改用只有 guid、没有 title/description 的条目并断言具体路径。没有删除或跳过测试。默认与 JS 均通过，六个示例在两目标均可运行。执行 `node scripts/verify.mjs` 可复现全部 check/test/build、示例和 CLI 正反验收，包括无 guid/link 的正文条目与非法 XML 边界；新项目安装见 [FINAL_ACCEPTANCE](docs/FINAL_ACCEPTANCE.md)。
+维护源码共有 222 个行为测试：正式 0.3.0 的 180 项保留，先新增 16 项规范/兼容测试，再增加 22 项实体安全、声明和 MIME 回归测试，以及 4 项最终审查回归；旧 email 已知缺口用例改为具体成功值断言，原 MIME 负向断言保留。执行 `node scripts/verify.mjs` 可复现双目标 check/test/build、六示例和 CLI 正反验收，含新增非法 UTF-8 字节检查。使用 v0.10.14 / v0.10.18 / v0.10.22 分别验证，不能用正式 0.3.0 的 CI 冒充维护工作区结果；registry 安装脚本仍只验证已发布 0.3.0。
 
-黑客松整改见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，申报承诺与实现证据见 [功能实现对照表](docs/申报书功能实现对照表.md)。当前矩阵为 24 PASS / 3 PARTIAL / 0 FAIL；A05 XML 覆盖、A13 obsolete email quoted-pair、A20 注册 MIME 参数语义未完整实现，不宣称完整 RFC 4287 兼容。
+黑客松整改见 [HACKATHON_REVIEW_RESPONSE](docs/HACKATHON_REVIEW_RESPONSE.md)，申报承诺与实现证据见 [功能实现对照表](docs/申报书功能实现对照表.md)。正式 0.3.0 矩阵为 24/3/0；维护源码为 25 PASS / 2 PARTIAL / 0 FAIL，A13 email 缺口已关闭，A05 XML 与 A20 通用注册 MIME 语义仍未完整。
 
 贡献流程、测试命令和开源合规说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 

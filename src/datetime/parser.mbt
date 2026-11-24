@@ -109,8 +109,8 @@ fn to_unix_seconds(
     year_of_era / 100 +
     day_of_year
   let days = era * 146097 + day_of_era - 719468
-  Int64::from_int(days) * 86400L +
-  Int64::from_int(hour * 3600 + minute * 60 + second - offset_seconds)
+  days.to_int64() * 86400L +
+  (hour * 3600 + minute * 60 + second - offset_seconds).to_int64()
 }
 
 ///|

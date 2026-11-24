@@ -6,7 +6,7 @@ pub(all) suberror ParseError {
   InvalidType(String, String)
   UnsupportedVersion(String)
   InvalidValue(String, String)
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 fn object(value : Json, path : String) -> Map[String, Json] raise ParseError {

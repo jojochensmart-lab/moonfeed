@@ -18,13 +18,8 @@ pub enum XmlEvent {
 priv enum DtdEntity {
   Internal(String)
   External
+  Unparsed
 }
-
-///|
-let max_general_entity_depth = 32
-
-///|
-let max_general_entity_value_chars = 1_048_576
 
 ///|
 pub(all) suberror XmlError {
@@ -50,6 +45,9 @@ pub struct Reader {
   priv mut attribute_declarations : Map[String, Map[String, XmlAttributeDecl]]
   priv mut doctype_seen : Bool
   priv mut document_element_seen : Bool
+  priv budget : XmlBudget
+  priv mut budget_started : Bool
+  priv mut standalone_yes : Bool
   strict_declaration : Bool
 }
 
@@ -328,20 +326,51 @@ pub fn Reader::from_string(
   input : String,
   strict_declaration? : Bool = false,
 ) -> Reader {
+  reader_with_limits(input, xml_limits(), strict_declaration~)
+}
+
+///|
+fn reader_with_limits(
+  input : String,
+  limits : XmlLimits,
+  strict_declaration? : Bool = false,
+) -> Reader {
   // XML 1.0 section 2.11: physical line endings precede entity expansion.
   let chars : Array[Char] = []
-  let raw = input.to_array()
-  let mut i = 0
+  let budget = new_budget(limits)
+  // UTF-8 has at least one byte per UTF-16 code unit. Reject before conversion.
+  let raw = if input.length() > limits.input_bytes {
+    budget.failure = Some("XML input byte limit exceeded")
+    []
+  } else {
+    input.to_array()
+  }
+  let mut bytes_left = limits.input_bytes
+  if !raw.is_empty() && raw[0] == '\u{FEFF}' {
+    bytes_left -= 3
+  }
+  // A decoded leading BOM is an encoding signature, not document character data.
+  let mut i = if !raw.is_empty() && raw[0] == '\u{FEFF}' { 1 } else { 0 }
   while i < raw.length() {
+    let bytes = utf8_width(raw[i])
+    if bytes > bytes_left {
+      budget.failure = Some("XML input byte limit exceeded")
+      break
+    }
+    bytes_left -= bytes
     if raw[i] == '\r' {
       chars.push('\n')
       if i + 1 < raw.length() && raw[i + 1] == '\n' {
+        bytes_left -= 1
         i += 1
       }
     } else {
       chars.push(raw[i])
     }
     i += 1
+  }
+  if bytes_left < 0 {
+    budget.failure = Some("XML input byte limit exceeded")
   }
   {
     chars,
@@ -351,6 +380,9 @@ pub fn Reader::from_string(
     attribute_declarations: Map([]),
     doctype_seen: false,
     document_element_seen: false,
+    budget,
+    budget_started: false,
+    standalone_yes: false,
     strict_declaration,
   }
 }
@@ -487,105 +519,14 @@ fn numeric(s : String) -> Char raise XmlError {
 }
 
 ///|
-fn decode_xml_value(
-  s : String,
-  entities : Map[String, DtdEntity],
-  chain : Array[String],
-) -> String raise XmlError {
-  let a = s.to_array()
-  let b = StringBuilder()
-  let mut output_chars = 0
-  let mut i = 0
-  while i < a.length() {
-    if a[i] != '&' {
-      b.write_char(a[i])
-      output_chars += 1
-      i += 1
-    } else {
-      let start = i + 1
-      i = start
-      while i < a.length() && a[i] != ';' {
-        i += 1
-      }
-      if i == a.length() {
-        raise Malformed("unterminated entity")
-      }
-      let e = StringBuilder()
-      for j = start; j < i; j = j + 1 {
-        e.write_char(a[j])
-      }
-      match e.to_string() {
-        "amp" => {
-          b.write_char('&')
-          output_chars += 1
-        }
-        "lt" => {
-          b.write_char('<')
-          output_chars += 1
-        }
-        "gt" => {
-          b.write_char('>')
-          output_chars += 1
-        }
-        "quot" => {
-          b.write_char('"')
-          output_chars += 1
-        }
-        "apos" => {
-          b.write_char('\'')
-          output_chars += 1
-        }
-        x if x.has_prefix("#") => {
-          b.write_char(numeric(x[1:].to_owned()))
-          output_chars += 1
-        }
-        name =>
-          match entities.get(name) {
-            Some(Internal(value)) => {
-              if chain.any(previous => previous == name) {
-                raise Malformed("recursive general entity")
-              }
-              if chain.length() >= max_general_entity_depth {
-                raise Malformed("general entity nesting limit exceeded")
-              }
-              // The internal reader exposes text events rather than injecting
-              // DTD replacement markup into the event stream. Keep text-only
-              // entities safe and explicit until replacement markup is modeled.
-              if value.contains("<") {
-                raise Malformed("markup in a general entity is unsupported")
-              }
-              let next_chain = chain.copy()
-              next_chain.push(name)
-              let expanded = decode_xml_value(value, entities, next_chain)
-              output_chars += expanded.to_array().length()
-              if output_chars > max_general_entity_value_chars {
-                raise Malformed("general entity expansion limit exceeded")
-              }
-              b.write_string(expanded)
-            }
-            Some(External) =>
-              raise Malformed(
-                "external general entity expansion is unsupported",
-              )
-            None => raise Malformed("unsupported entity")
-          }
-      }
-      i += 1
-    }
-    if output_chars > max_general_entity_value_chars {
-      raise Malformed("general entity expansion limit exceeded")
-    }
-  }
-  b.to_string()
-}
-
-///|
 fn normalize_tokenized_attribute(value : String) -> String {
   let builder = StringBuilder()
   let mut pending_space = false
   let mut has_output = false
   for ch in value.to_array() {
-    if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' {
+    // The final tokenized-value pass collapses only #x20. Character-reference
+    // TAB/CR/LF survive the preceding normalization (XML 1.0 section 3.3.3).
+    if ch == ' ' {
       if has_output {
         pending_space = true
       }
@@ -603,7 +544,15 @@ fn normalize_tokenized_attribute(value : String) -> String {
 
 ///|
 fn Reader::decode(self : Reader, value : String) -> String raise XmlError {
-  decode_xml_value(value, self.entities, [])
+  decode_xml_value(value, self.entities, self.budget)
+}
+
+///|
+fn Reader::decode_attribute(
+  self : Reader,
+  value : String,
+) -> String raise XmlError {
+  decode_xml_value(value, self.entities, self.budget, attribute_mode=true)
 }
 
 ///|
@@ -616,6 +565,7 @@ fn Reader::apply_attribute_declarations(
     None => attributes
     Some(declarations) => {
       for (name, declaration) in declarations.to_array() {
+        self.budget.charge_work(name.length() + 1)
         match attributes.get(name) {
           Some(value) if declaration.tokenized =>
             attributes.set(name, normalize_tokenized_attribute(value))
@@ -633,7 +583,7 @@ fn Reader::apply_attribute_declarations(
                     },
                   )
                 }
-                let decoded = self.decode(literal_builder.to_string())
+                let decoded = self.decode_attribute(literal_builder.to_string())
                 attributes.set(
                   name,
                   if declaration.tokenized {
@@ -653,11 +603,19 @@ fn Reader::apply_attribute_declarations(
 }
 
 ///|
-fn Reader::until(self : Reader, end : String) -> String raise XmlError {
+fn Reader::until(
+  self : Reader,
+  end : String,
+  emit? : Bool = false,
+) -> String raise XmlError {
   let n = end.to_array().length()
   let b = StringBuilder()
   while !self.starts(end) {
-    b.write_char(self.take())
+    let ch = self.take()
+    if emit {
+      self.budget.output(ch)
+    }
+    b.write_char(ch)
   }
   self.pos += n
   b.to_string()
@@ -754,6 +712,7 @@ fn Reader::declaration(self : Reader) -> Unit raise XmlError {
       !standalone_seen &&
       (value == "yes" || value == "no") {
       standalone_seen = true
+      self.standalone_yes = value == "yes"
     } else {
       raise Malformed("invalid XML declaration field or order")
     }
@@ -819,7 +778,7 @@ fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
     if m.get(k) is Some(_) {
       raise Malformed("duplicate attribute")
     }
-    m.set(k, self.decode(b.to_string()))
+    m.set(k, self.decode_attribute(b.to_string()))
   } nobreak {
     m
   }
@@ -827,6 +786,9 @@ fn Reader::attrs(self : Reader) -> Map[String, String] raise XmlError {
 
 ///|
 fn Reader::start(self : Reader) -> XmlEvent raise XmlError {
+  if self.tags.length() >= self.budget.limits.element_depth {
+    self.budget.fail("XML element nesting limit exceeded")
+  }
   // Seen + an empty open-tag stack means the sole document element ended.
   // This covers both <root/> and <root>...</root> without restricting children.
   if self.tags.is_empty() && self.document_element_seen {
@@ -865,6 +827,11 @@ fn Reader::finish(self : Reader) -> XmlEvent raise XmlError {
 
 ///|
 pub fn Reader::read_event(self : Reader) -> XmlEvent raise XmlError {
+  self.budget.check()
+  if !self.budget_started {
+    self.budget.charge_work(self.chars.length())
+    self.budget_started = true
+  }
   while self.starts("<!--") || self.starts("<?") || self.starts("<!DOCTYPE") {
     if self.starts("<!--") {
       self.comment()
@@ -876,7 +843,12 @@ pub fn Reader::read_event(self : Reader) -> XmlEvent raise XmlError {
         !self.tags.is_empty() {
         raise Malformed("DOCTYPE must occur once before the document element")
       }
-      let (next_pos, info) = parse_doctype(self.chars, self.pos)
+      let (next_pos, info) = parse_doctype(
+        self.chars,
+        self.pos,
+        self.budget,
+        self.standalone_yes,
+      )
       self.pos = next_pos
       self.entities = info.entities
       self.attribute_declarations = info.attributes
@@ -897,7 +869,8 @@ pub fn Reader::read_event(self : Reader) -> XmlEvent raise XmlError {
       raise Malformed("CDATA outside document element")
     }
     self.pos += 9
-    return CData(self.until("]]>"))
+    let value = self.until("]]>", emit=true)
+    return CData(value)
   }
   if self.starts("</") {
     return self.finish()

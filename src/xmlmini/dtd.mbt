@@ -16,6 +16,9 @@ priv struct DtdParser {
   mut pos : Int
   entities : Map[String, DtdEntity]
   attributes : Map[String, Map[String, XmlAttributeDecl]]
+  budget : XmlBudget
+  references : Map[String, Array[String]]
+  all_references : Array[String]
 }
 
 ///|
@@ -74,17 +77,7 @@ fn DtdParser::space(self : DtdParser) -> Bool {
 ///|
 fn DtdParser::name(self : DtdParser) -> String raise XmlError {
   let start = self.pos
-  while self.peek() is Some(ch) &&
-        ch != ' ' &&
-        ch != '\t' &&
-        ch != '\r' &&
-        ch != '\n' &&
-        ch != '>' &&
-        ch != '/' &&
-        ch != '[' &&
-        ch != ']' &&
-        ch != '=' &&
-        ch != '?' {
+  while self.peek() is Some(ch) && (ncname_char(ch) || ch == ':') {
     self.pos += 1
   }
   if self.pos == start {
@@ -127,7 +120,10 @@ fn DtdParser::quoted(self : DtdParser) -> String raise XmlError {
 }
 
 ///|
-fn DtdParser::external_id(self : DtdParser) -> Unit raise XmlError {
+fn DtdParser::external_id(
+  self : DtdParser,
+  public_only? : Bool = false,
+) -> Unit raise XmlError {
   if self.starts("SYSTEM") {
     self.expect_text("SYSTEM")
     if !self.space() {
@@ -139,34 +135,138 @@ fn DtdParser::external_id(self : DtdParser) -> Unit raise XmlError {
     if !self.space() {
       raise Malformed("PUBLIC identifier requires whitespace")
     }
-    let _ = self.quoted()
-    if !self.space() {
-      raise Malformed("PUBLIC system identifier requires whitespace")
+    let public_identifier = self.quoted()
+    if !public_identifier
+      .to_array()
+      .all(ch => {
+        (ch >= 'a' && ch <= 'z') ||
+        (ch >= 'A' && ch <= 'Z') ||
+        (ch >= '0' && ch <= '9') ||
+        ch == ' ' ||
+        ch == '\r' ||
+        ch == '\n' ||
+        "-'()+,./:=?;!*#@$_%".contains(ch.to_string())
+      }) {
+      raise Malformed("invalid XML PUBLIC identifier character")
     }
-    let _ = self.quoted()
+    let separator = self.space()
+    if self.peek() is Some('\'' | '"') {
+      if !separator {
+        raise Malformed("PUBLIC system identifier requires whitespace")
+      }
+      let _ = self.quoted()
+    } else if !public_only {
+      raise Malformed("PUBLIC requires a system identifier")
+    }
   } else {
     raise Malformed("invalid XML external identifier")
   }
 }
 
 ///|
-fn DtdParser::skip_declaration(self : DtdParser) -> Unit raise XmlError {
-  let mut quote = None
-  while true {
-    match self.peek() {
-      None => raise Malformed("unterminated XML DTD declaration")
-      Some(ch) => {
-        self.pos += 1
-        match quote {
-          Some(q) if ch == q => quote = None
-          Some(_) => ()
-          None if ch == '\'' || ch == '"' => quote = Some(ch)
-          None if ch == '>' => return
-          None => ()
-        }
-      }
-    }
+fn DtdParser::occurrence(self : DtdParser) -> Unit {
+  if self.peek() is Some('?' | '*' | '+') {
+    self.pos += 1
   }
+}
+
+///|
+fn DtdParser::content_particle(
+  self : DtdParser,
+  depth : Int,
+) -> Unit raise XmlError {
+  if self.peek() is Some('(') {
+    self.content_group(depth + 1, false)
+  } else {
+    let _ = self.name()
+    self.occurrence()
+  }
+}
+
+///|
+fn DtdParser::content_group(
+  self : DtdParser,
+  depth : Int,
+  mixed : Bool,
+) -> Unit raise XmlError {
+  if depth > 128 {
+    raise Malformed("DTD content model nesting limit exceeded")
+  }
+  self.expect('(')
+  ignore(self.space())
+  if self.starts("#PCDATA") {
+    if !mixed {
+      raise Malformed("mixed content is not a child content particle")
+    }
+    self.expect_text("#PCDATA")
+    ignore(self.space())
+    let mut children = 0
+    while self.peek() is Some('|') {
+      self.pos += 1
+      ignore(self.space())
+      let _ = self.name()
+      children += 1
+      ignore(self.space())
+    }
+    self.expect(')')
+    if children > 0 {
+      self.expect('*')
+    } else if self.peek() is Some('*') {
+      self.pos += 1
+    }
+  } else {
+    self.content_particle(depth)
+    ignore(self.space())
+    let mut separator : Char? = None
+    while self.peek() is Some('|' | ',' as current) {
+      if separator is Some(previous) && previous != current {
+        raise Malformed("mixed separators in DTD content group")
+      }
+      separator = Some(current)
+      self.pos += 1
+      ignore(self.space())
+      self.content_particle(depth)
+      ignore(self.space())
+    }
+    self.expect(')')
+    self.occurrence()
+  }
+}
+
+///|
+fn DtdParser::element_decl(self : DtdParser) -> Unit raise XmlError {
+  self.expect_text("<!ELEMENT")
+  if !self.space() {
+    raise Malformed("ELEMENT requires whitespace")
+  }
+  let _ = self.name()
+  if !self.space() {
+    raise Malformed("ELEMENT requires a content specification")
+  }
+  if self.starts("EMPTY") {
+    self.expect_text("EMPTY")
+  } else if self.starts("ANY") {
+    self.expect_text("ANY")
+  } else {
+    self.content_group(0, true)
+  }
+  ignore(self.space())
+  self.expect('>')
+}
+
+///|
+fn DtdParser::notation_decl(self : DtdParser) -> Unit raise XmlError {
+  self.expect_text("<!NOTATION")
+  if !self.space() {
+    raise Malformed("NOTATION requires whitespace")
+  }
+  let _ = self.name()
+  if !self.space() {
+    raise Malformed("NOTATION requires an external/public identifier")
+  }
+  self.external_id(public_only=true)
+  ignore(self.space())
+  self.expect('>')
 }
 
 ///|
@@ -211,6 +311,55 @@ fn DtdParser::processing_instruction(self : DtdParser) -> Unit raise XmlError {
 }
 
 ///|
+// XML 1.0 section 4.5 resolves character references in EntityValue when the
+// declaration is read, while general references are retained for later use.
+fn entity_replacement_value(
+  raw : String,
+  budget : XmlBudget,
+  allow_percent? : Bool = false,
+) -> String raise XmlError {
+  let chars = raw.to_array()
+  let result = StringBuilder()
+  let mut pos = 0
+  while pos < chars.length() {
+    if chars[pos] == '%' && !allow_percent {
+      raise Malformed(
+        "parameter entity reference inside internal declaration is forbidden",
+      )
+    }
+    if chars[pos] != '&' {
+      result.write_char(chars[pos])
+      pos += 1
+      continue
+    }
+    budget.reference()
+    pos += 1
+    let name = StringBuilder()
+    while pos < chars.length() && chars[pos] != ';' {
+      name.write_char(chars[pos])
+      pos += 1
+    }
+    if pos == chars.length() {
+      raise Malformed("unterminated entity reference in EntityValue")
+    }
+    let reference = name.to_string()
+    let token = reference.to_array()
+    if reference.has_prefix("#") {
+      result.write_char(numeric(reference[1:].to_owned()))
+    } else {
+      if token.is_empty() ||
+        !(ncname_start(token[0]) || token[0] == ':') ||
+        !token.all(ch => ncname_char(ch) || ch == ':') {
+        raise Malformed("invalid entity name in EntityValue")
+      }
+      result.write_string("&" + reference + ";")
+    }
+    pos += 1
+  }
+  result.to_string()
+}
+
+///|
 fn DtdParser::entity_decl(self : DtdParser) -> Unit raise XmlError {
   self.expect_text("<!ENTITY")
   if !self.space() {
@@ -228,18 +377,35 @@ fn DtdParser::entity_decl(self : DtdParser) -> Unit raise XmlError {
     raise Malformed("entity definition requires whitespace")
   }
   if self.peek() is Some('\'' | '"') {
-    let value = self.quoted()
+    let raw = self.quoted()
+    self.budget.charge_work(raw.length() + 1)
+    let value = entity_replacement_value(raw, self.budget)
     ignore(self.space())
     self.expect('>')
     // The first declaration is binding. Parameter entities are deliberately
     // not expanded; a reference to one is rejected by subset().
-    if !parameter_entity && self.entities.get(name) is None {
-      self.entities.set(name, Internal(value))
+    if !parameter_entity {
+      let refs = declared_references(raw, self.budget)
+      for reference in refs {
+        self.all_references.push(reference)
+      }
+      if self.entities.get(name) is None {
+        self.entities.set(name, Internal(value))
+        self.references.set(name, refs)
+      }
     }
   } else {
     self.external_id()
-    ignore(self.space())
+    let had_space = self.space()
+    let mut unparsed = false
     if self.starts("NDATA") {
+      if parameter_entity {
+        raise Malformed("NDATA is forbidden for parameter entities")
+      }
+      if !had_space {
+        raise Malformed("NDATA requires preceding whitespace")
+      }
+      unparsed = true
       self.expect_text("NDATA")
       if !self.space() {
         raise Malformed("NDATA notation requires whitespace")
@@ -249,28 +415,35 @@ fn DtdParser::entity_decl(self : DtdParser) -> Unit raise XmlError {
     }
     self.expect('>')
     if !parameter_entity && self.entities.get(name) is None {
-      self.entities.set(name, External)
+      self.entities.set(name, if unparsed { Unparsed } else { External })
     }
   }
 }
 
 ///|
-fn DtdParser::skip_enumeration(self : DtdParser) -> Unit raise XmlError {
+fn DtdParser::skip_enumeration(
+  self : DtdParser,
+  notation : Bool,
+) -> Unit raise XmlError {
   self.expect('(')
-  let mut depth = 1
-  while depth > 0 {
-    match self.peek() {
-      None => raise Malformed("unterminated ATTLIST enumeration")
-      Some('(') => {
-        depth += 1
-        self.pos += 1
-      }
-      Some(')') => {
-        depth -= 1
-        self.pos += 1
-      }
-      Some(_) => self.pos += 1
+  while true {
+    ignore(self.space())
+    let start = self.pos
+    if notation && !(self.peek() is Some(ch) && (ncname_start(ch) || ch == ':')) {
+      raise Malformed("NOTATION enumeration requires XML names")
     }
+    while self.peek() is Some(ch) && (ncname_char(ch) || ch == ':') {
+      self.pos += 1
+    }
+    if self.pos == start {
+      raise Malformed("empty or invalid ATTLIST enumeration token")
+    }
+    ignore(self.space())
+    if self.peek() is Some(')') {
+      self.pos += 1
+      return
+    }
+    self.expect('|')
   }
 }
 
@@ -298,7 +471,7 @@ fn DtdParser::attlist_decl(self : DtdParser) -> Unit raise XmlError {
       raise Malformed("attribute type requires whitespace")
     }
     let tokenized = if self.peek() is Some('(') {
-      self.skip_enumeration()
+      self.skip_enumeration(false)
       true
     } else {
       let type_start = self.pos
@@ -322,10 +495,16 @@ fn DtdParser::attlist_decl(self : DtdParser) -> Unit raise XmlError {
         if !self.space() {
           raise Malformed("NOTATION type requires an enumeration")
         }
-        self.skip_enumeration()
+        self.skip_enumeration(true)
+        true
+      } else if type_name == "CDATA" {
+        false
+      } else if [
+          "ID", "IDREF", "IDREFS", "ENTITY", "ENTITIES", "NMTOKEN", "NMTOKENS",
+        ].contains(type_name) {
         true
       } else {
-        type_name != "CDATA"
+        raise Malformed("unknown ATTLIST attribute type")
       }
     }
     if !self.space() {
@@ -359,6 +538,19 @@ fn DtdParser::attlist_decl(self : DtdParser) -> Unit raise XmlError {
     } else {
       Some(self.quoted())
     }
+    if default_value is Some(value) {
+      if value.contains("<") {
+        raise Malformed("literal less-than sign in attribute default")
+      }
+      // Check the AttValue reference syntax even when the element never occurs.
+      // Unlike EntityValue, an attribute default may contain a literal percent.
+      ignore(entity_replacement_value(value, self.budget, allow_percent=true))
+      // XML 1.0 Entity Declared: direct AND indirect default references must
+      // already be declared here, even if the element never appears.
+      ignore(
+        decode_xml_value(value, self.entities, self.budget, attribute_mode=true),
+      )
+    }
     if declarations.get(attribute_name) is None {
       declarations.set(attribute_name, { default_value, tokenized, })
     }
@@ -384,9 +576,10 @@ fn DtdParser::subset(self : DtdParser) -> Unit raise XmlError {
       self.entity_decl()
     } else if self.starts("<!ATTLIST") {
       self.attlist_decl()
-    } else if self.starts("<!ELEMENT") || self.starts("<!NOTATION") {
-      self.pos += 2
-      self.skip_declaration()
+    } else if self.starts("<!ELEMENT") {
+      self.element_decl()
+    } else if self.starts("<!NOTATION") {
+      self.notation_decl()
     } else if self.peek() is Some('%') {
       raise Malformed("parameter entity references are unsupported")
     } else {
@@ -399,12 +592,17 @@ fn DtdParser::subset(self : DtdParser) -> Unit raise XmlError {
 fn parse_doctype(
   chars : Array[Char],
   start : Int,
+  budget : XmlBudget,
+  standalone_yes : Bool,
 ) -> (Int, DtdInfo) raise XmlError {
   let parser : DtdParser = {
     chars,
     pos: start,
     entities: Map([]),
     attributes: Map([]),
+    budget,
+    references: Map([]),
+    all_references: [],
   }
   parser.expect_text("<!DOCTYPE")
   if !parser.space() {
@@ -412,7 +610,8 @@ fn parse_doctype(
   }
   let _ = parser.name()
   ignore(parser.space())
-  if parser.starts("SYSTEM") || parser.starts("PUBLIC") {
+  let external_subset = parser.starts("SYSTEM") || parser.starts("PUBLIC")
+  if external_subset {
     parser.external_id()
     ignore(parser.space())
   }
@@ -422,5 +621,17 @@ fn parse_doctype(
     ignore(parser.space())
   }
   parser.expect('>')
+  validate_entity_declarations(
+    parser.entities,
+    parser.references,
+    parser.all_references,
+    !external_subset || standalone_yes,
+    budget,
+  )
+  for i = start; i < parser.pos; i = i + 1 {
+    if !xml_character(chars[i].to_int()) {
+      raise Malformed("invalid XML 1.0 character in DOCTYPE")
+    }
+  }
   (parser.pos, { entities: parser.entities, attributes: parser.attributes, })
 }

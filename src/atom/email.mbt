@@ -1,4 +1,32 @@
 ///|
+// RFC 2822 FWS/obs-FWS: line breaks here must be CRLF followed by WSP.
+// Quoted-pair line breaks are consumed separately in their lexical context.
+fn mail_fws(
+  a : Array[Char],
+  start : Int,
+  path : String,
+) -> Int raise ParseError {
+  let mut pos = start
+  while pos < a.length() {
+    if a[pos] == ' ' || a[pos] == '\t' {
+      pos += 1
+    } else if a[pos] == '\r' {
+      if pos + 2 >= a.length() ||
+        a[pos + 1] != '\n' ||
+        (a[pos + 2] != ' ' && a[pos + 2] != '\t') {
+        raise InvalidRequiredField(path, "invalid folding whitespace")
+      }
+      pos += 2
+    } else if a[pos] == '\n' {
+      raise InvalidRequiredField(path, "bare newline outside email quoted-pair")
+    } else {
+      break
+    }
+  }
+  pos
+}
+
+///|
 fn mail_cfws(
   a : Array[Char],
   start : Int,
@@ -7,7 +35,7 @@ fn mail_cfws(
   let mut pos = start
   while pos < a.length() {
     if a[pos] == ' ' || a[pos] == '\t' || a[pos] == '\r' || a[pos] == '\n' {
-      pos += 1
+      pos = mail_fws(a, pos, path)
       continue
     }
     if a[pos] != '(' {
@@ -21,6 +49,9 @@ fn mail_cfws(
         if pos >= a.length() {
           raise InvalidRequiredField(path, "unfinished email comment escape")
         }
+      } else if a[pos] == '\r' || a[pos] == '\n' {
+        pos = mail_fws(a, pos, path)
+        continue
       } else if a[pos] == '(' {
         depth += 1
       } else if a[pos] == ')' {
@@ -61,6 +92,9 @@ fn mail_word(
         if pos >= a.length() {
           raise InvalidRequiredField(path, "unfinished quoted email escape")
         }
+      } else if a[pos] == '\r' || a[pos] == '\n' {
+        pos = mail_fws(a, pos, path)
+        continue
       }
       pos += 1
     }
@@ -78,13 +112,11 @@ fn mail_word(
 
 ///|
 /// Addr-spec parser with dot atoms, quoted words, comments and domain literals.
-/// Obsolete quoted CR/LF productions remain outside the validated subset.
+/// Includes XML-representable obsolete quoted-pairs, without relaxing MIME headers.
 fn validate_email(value : String, path : String) -> Unit raise ParseError {
   let a = value.to_array()
-  // RFC 2822 NO-WS-CTL includes DEL, which is legal XML 1.0 text.
-  // The word/comment/domain parsers still decide where it is permitted;
-  // MIME headers keep their stricter character repertoire.
-  header_characters(a, path, allow_del=true)
+  // RFC 2822 obs-qp permits ASCII CR/LF after a backslash in qcontent,
+  // ccontent and dcontent. FWS validation must therefore be context-specific.
   for c in a {
     if c.to_int() > 0x7F ||
       (c.to_int() < 0x20 && c != '\t' && c != '\r' && c != '\n') {
@@ -115,6 +147,9 @@ fn validate_email(value : String, path : String) -> Unit raise ParseError {
       }
       if a[pos] == '\\' {
         pos += 1
+      } else if a[pos] == '\r' || a[pos] == '\n' {
+        pos = mail_fws(a, pos, path)
+        continue
       }
       if pos >= a.length() {
         raise InvalidRequiredField(path, "unfinished email domain literal")

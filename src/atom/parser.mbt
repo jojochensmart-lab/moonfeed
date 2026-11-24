@@ -4,7 +4,7 @@ pub(all) suberror ParseError {
   InvalidAtomRoot(String)
   InvalidRequiredField(String, String)
   InvalidDateTime(String, @datetime.DateTimeError)
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn ParseError::equal(self : ParseError, other : ParseError) -> Bool {
@@ -96,15 +96,7 @@ fn document_tree(
   document_uri : String?,
   strict_declaration? : Bool = false,
 ) -> Node raise ParseError {
-  let normalized = if input.has_prefix("\u{FEFF}") {
-    input[1:].to_owned()
-  } else {
-    input
-  }
-  let reader = @xmlmini.NamespaceReader::from_string(
-    normalized,
-    strict_declaration~,
-  )
+  let reader = @xmlmini.NamespaceReader::from_string(input, strict_declaration~)
   let stack : Array[Node] = []
   let roots : Array[Node] = []
   while true {

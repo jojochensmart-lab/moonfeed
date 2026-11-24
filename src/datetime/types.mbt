@@ -4,7 +4,7 @@
 pub(all) struct DateTime {
   raw : String
   unix_seconds : Int64
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn DateTime::equal(self : DateTime, other : DateTime) -> Bool {
@@ -43,7 +43,7 @@ pub(all) suberror DateTimeError {
   InvalidTime
   InvalidOffset
   UnsupportedTimezone(String)
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn DateTimeError::equal(

@@ -54,6 +54,50 @@ fn mime_token(
 }
 
 ///|
+// RFC 2387 section 3.4 embeds type/subtype, not another parameter list.
+// Parse it separately instead of folding the entire outer MIME value.
+fn related_root_type(value : String, path : String) -> String raise ParseError {
+  let chars = value.to_array()
+  let (major, slash) = mime_token(chars, 0, path)
+  if slash >= chars.length() || chars[slash] != '/' {
+    raise InvalidRequiredField(
+      path, "multipart/related type requires type/subtype",
+    )
+  }
+  let (minor, end) = mime_token(chars, slash + 1, path)
+  if end != chars.length() {
+    raise InvalidRequiredField(path, "invalid multipart/related root type")
+  }
+  major.to_lower() + "/" + minor.to_lower()
+}
+
+///|
+fn related_boundary(value : String, path : String) -> Unit raise ParseError {
+  let chars = value.to_array()
+  if chars.is_empty() ||
+    chars.length() > 70 ||
+    chars[chars.length() - 1] == ' ' ||
+    !chars.all(c => {
+      ascii_digit(c) ||
+      (c >= 'a' && c <= 'z') ||
+      (c >= 'A' && c <= 'Z') ||
+      "'()+_,-./:=? ".contains(c.to_string())
+    }) {
+    raise InvalidRequiredField(path, "invalid multipart boundary")
+  }
+}
+
+///|
+// Apply charset semantics only where we have the governing registration.
+// An unknown/private type may assign its own meaning to that parameter name.
+fn known_charset_type(essence : String) -> Bool {
+  [
+    "text/plain", "text/html", "text/xml", "application/xml", "application/atom+xml",
+    "application/xhtml+xml",
+  ].contains(essence)
+}
+
+///|
 fn parse_media_type(
   value : String,
   path : String,
@@ -109,14 +153,37 @@ fn parse_media_type(
       token
     }
     let key = name.to_lower()
+    let parameter = if essence == "multipart/related" {
+      if ["type", "boundary", "start", "start-info"].contains(key) &&
+        parameters.any(pair => pair.0 == key) {
+        raise InvalidRequiredField(
+          path,
+          "duplicate multipart/related parameter " + key,
+        )
+      }
+      if key == "type" {
+        related_root_type(parameter, path)
+      } else {
+        if key == "boundary" {
+          related_boundary(parameter, path)
+        }
+        parameter
+      }
+    } else {
+      parameter
+    }
     // RFC 2045 makes parameter names case-insensitive and values case-sensitive
     // unless their governing media-type registration says otherwise. Apply the
-    // explicit charset and RFC 2046 external-body exceptions here.
-    let case_insensitive_value = key == "charset" ||
+    // explicit charset and registered RFC 2046/3676/5023 exceptions here.
+    let case_insensitive_value = (
+        key == "charset" && known_charset_type(essence)
+      ) ||
       (
         essence == "message/external-body" &&
         (key == "access-type" || key == "permission" || key == "mode")
-      )
+      ) ||
+      (essence == "application/atom+xml" && key == "type") ||
+      (essence == "text/plain" && (key == "format" || key == "delsp"))
     parameters.push(
       (
         key,
@@ -126,6 +193,15 @@ fn parse_media_type(
           parameter
         },
       ),
+    )
+  }
+  if essence == "multipart/related" &&
+    (
+      !parameters.any(p => p.0 == "type") ||
+      !parameters.any(p => p.0 == "boundary")
+    ) {
+    raise InvalidRequiredField(
+      path, "multipart/related requires type and boundary parameters",
     )
   }
   { essence, parameters, }
